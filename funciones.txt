@@ -1,0 +1,134 @@
+/* función de inserción en preformulario */
+CREATE OR REPLACE FUNCTION insertar_respuesta(
+    p_idPreformulario UUID,
+    p_nombreSitio VARCHAR,
+    p_descripcionLugar TEXT,
+    p_ubicacion VARCHAR,
+    p_tipoLugar VARCHAR,
+    p_nombrePersona VARCHAR,
+    p_horario VARCHAR DEFAULT NULL,
+    p_latitud DECIMAL(9,6) DEFAULT NULL,
+    p_longitud DECIMAL(9,6) DEFAULT NULL,
+    p_recomendaciones TEXT DEFAULT NULL
+)
+RETURNS VOID AS $$
+BEGIN
+
+    IF p_nombreSitio IS NULL OR p_nombreSitio = '' THEN
+        RAISE EXCEPTION 'El nombre del sitio es obligatorio';
+    END IF;
+    IF p_descripcionLugar IS NULL OR p_descripcionLugar = '' THEN
+        RAISE EXCEPTION 'La descripción del lugar es obligatoria';
+    END IF;
+    IF p_ubicacion IS NULL OR p_ubicacion = '' THEN
+        RAISE EXCEPTION 'La ubicación es obligatoria';
+    END IF;
+    IF p_tipoLugar IS NULL OR p_tipoLugar = '' THEN
+        RAISE EXCEPTION 'El tipo de lugar es obligatorio';
+    END IF;
+    IF p_nombrePersona IS NULL OR p_nombrePersona = '' THEN
+        RAISE EXCEPTION 'El nombre de la persona es obligatorio';
+    END IF;
+
+-- Inserción
+    INSERT INTO respuestas_preformularios (
+        idPreformulario, nombreSitio, descripcionLugar, ubicacion,
+        tipoLugar, nombrePersona, horario, latitud, longitud,
+        recomendaciones, fechaRespuesta
+    )
+    VALUES (
+        p_idPreformulario, p_nombreSitio, p_descripcionLugar, p_ubicacion,
+        p_tipoLugar, p_nombrePersona, p_horario, p_latitud, p_longitud,
+        p_recomendaciones, NOW()
+    );
+END;
+$$ LANGUAGE plpgsql;
+
+
+/* función de inserción de publicación */
+
+CREATE OR REPLACE FUNCTION insertar_publicacion(
+    p_idPlantilla UUID,
+    p_idRespuesta UUID,
+    p_contenidoFinal TEXT,
+    p_estado VARCHAR
+)
+RETURNS VOID AS $$
+BEGIN
+    IF p_contenidoFinal IS NULL OR p_contenidoFinal = '' THEN
+        RAISE EXCEPTION 'El contenido final es obligatorio';
+    END IF;
+    IF p_estado NOT IN ('borrador','publicado') THEN
+        RAISE EXCEPTION 'Estado inválido';
+    END IF;
+
+    INSERT INTO Publicaciones (
+        idPlantilla, idRespuesta, contenidoFinal, fechaPublicacion, estado
+    )
+    VALUES (
+        p_idPlantilla, p_idRespuesta, p_contenidoFinal, NOW(), p_estado
+    );
+END;
+$$ LANGUAGE plpgsql;
+
+/* función de inserción de imagenes */
+CREATE OR REPLACE FUNCTION insertar_multimedia(
+    p_idPublicacion UUID,
+    p_tipo VARCHAR,
+    p_imagen BYTEA,
+    p_descripcion TEXT DEFAULT NULL
+)
+RETURNS VOID AS $$
+BEGIN
+    IF p_tipo NOT IN ('imagen','video','mapa','360') THEN
+        RAISE EXCEPTION 'Tipo inválido';
+    END IF;
+    IF p_imagen IS NULL THEN
+        RAISE EXCEPTION 'La imagen/video es obligatorio';
+    END IF;
+
+    INSERT INTO Multimedia (
+        idPublicacion, tipo, imagen, descripcion
+    )
+    VALUES (
+        p_idPublicacion, p_tipo, p_imagen, p_descripcion
+    );
+END;
+$$ LANGUAGE plpgsql;
+
+/* función aprobar solicitud de plantilla*/
+CREATE OR REPLACE FUNCTION aprobar_solicitud_plantilla(
+    p_idSolicitud UUID,
+    p_idAdmin UUID,
+    p_idCategoria UUID
+)
+RETURNS VOID AS $$
+DECLARE
+    v_nombre VARCHAR;
+    v_descripcion TEXT;
+    v_contenido TEXT;
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM solicitud_plantilla WHERE idsolicitud = p_idSolicitud
+    ) THEN
+        RAISE EXCEPTION 'La solicitud no existe';
+    END IF;
+
+    SELECT nombrepropuesta, descripcionpropuesta, contenidopropuesto
+    INTO v_nombre, v_descripcion, v_contenido
+    FROM solicitud_plantilla
+    WHERE idsolicitud = p_idSolicitud;
+
+    UPDATE solicitud_plantilla
+    SET estado = 'aprobada',
+        revisadopor = p_idAdmin
+    WHERE idsolicitud = p_idSolicitud;
+
+    INSERT INTO plantillas (
+        nombre, descripcion, contenido, estado, idcategoria, fechacreacion
+    )
+    VALUES (
+        v_nombre, v_descripcion, v_contenido, 'aprobada', p_idCategoria, NOW()
+    );
+END;
+$$ LANGUAGE plpgsql;
