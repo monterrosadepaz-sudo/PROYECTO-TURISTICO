@@ -6,6 +6,7 @@ import FormularioPublicar from "./components/FormularioPublicar";
 import DetalleDestino from "./components/DetalleDestino";
 import Navbar from "./components/Navbar";
 import Login from "./components/Login"; 
+import Footer from "./components/Footer"; // 1. Importamos el nuevo componente
 
 function App() {
   const [sitioSeleccionado, setSitioSeleccionado] = useState(null);
@@ -19,7 +20,7 @@ function App() {
 
   return (
     <Router>
-      <div className="min-h-screen bg-slate-50">
+      <div className="flex flex-col min-h-screen bg-slate-50"> {/* Agregué flex y flex-col */}
         <Navbar 
           alClickIngresar={() => setMostrarLogin(true)} 
           isLogged={usuarioAutenticado}
@@ -33,23 +34,22 @@ function App() {
           />
         )}
 
-        <Routes>
-          {/* Ruta Principal */}
-          <Route path="/" element={<Home />} />
+        {/* 2. Contenedor principal con flex-grow para que el footer siempre baje */}
+        <div className="flex-grow"> 
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/departamento/:nombreDepto" element={
+              <VistaDepartamento onSeleccionarSitio={setSitioSeleccionado} />
+            } />
+            <Route path="/destino" element={
+              <DetalleDestino sitio={sitioSeleccionado} />
+            } />
+            <Route path="/publicar" element={<FormularioPublicar />} />
+          </Routes>
+        </div>
 
-          {/* Ruta de Departamento con parámetro dinámico :nombreDepto */}
-          <Route path="/departamento/:nombreDepto" element={
-            <VistaDepartamento onSeleccionarSitio={setSitioSeleccionado} />
-          } />
-
-          {/* Ruta de Detalle */}
-          <Route path="/destino" element={
-            <DetalleDestino sitio={sitioSeleccionado} />
-          } />
-
-          {/* Ruta de Publicar */}
-          <Route path="/publicar" element={<FormularioPublicar />} />
-        </Routes>
+        {/* 3. El Footer se renderiza en todas las vistas */}
+        <Footer /> 
       </div>
     </Router>
   );
