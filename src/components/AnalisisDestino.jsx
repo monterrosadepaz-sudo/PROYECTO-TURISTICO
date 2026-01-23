@@ -39,7 +39,7 @@ export default function AnalisisDestino() {
 
       <div className="max-w-7xl mx-auto mt-12 px-8 grid grid-cols-1 lg:grid-cols-12 gap-12">
         
-        {/* COLUMNA IZQUIERDA: COLABORADOR Y COSTOS */}
+        {/* COLUMNA IZQUIERDA: DONDE MUESTRO COLABORADOR(USUARIO QUE ENVIA LA PETICION) Y COSTOS */}
         <div className="lg:col-span-4 space-y-8">
           <section className="bg-slate-900 rounded-[2.5rem] p-10 text-white shadow-2xl">
              <h4 className="text-blue-400 text-[10px] font-black uppercase tracking-[0.2em] mb-6">Petición de:</h4>
@@ -47,7 +47,7 @@ export default function AnalisisDestino() {
              <p className="text-sm font-black text-blue-200 tracking-widest">+503 {sitio.telefonoColaborador}</p>
           </section>
 
-          {/* 1. COSTOS DE ENTRADA (Gratis por ser playa) */}
+          {/* 1. COSTOS DE ENTRADA (Lo dejo gratis porque es playa y no cobran por entrar xd) */}
           <section className="bg-white rounded-[2.5rem] p-10 border border-slate-200 shadow-sm text-center">
              <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-[0.2em] mb-4 text-left">Costos de Entrada</h4>
              <div className="py-4 bg-green-50 rounded-3xl border-2 border-green-100 border-dashed">
@@ -78,7 +78,7 @@ export default function AnalisisDestino() {
         <div className="lg:col-span-8 space-y-12">
           <div className="bg-white rounded-[4rem] p-12 border border-slate-200 shadow-sm space-y-10">
             
-            {/* 4. UBICACIÓN: DEPARTAMENTO Y NOMBRE DEL MISMO TAMAÑO */}
+            {/* 4. UBICACIÓN: DEPARTAMENTO Y NOMBRE*/}
             <div className="flex flex-col gap-1 border-b pb-8 border-slate-100">
               <h2 className="text-6xl font-black text-blue-600 italic uppercase leading-none tracking-tighter">
                 {sitio.departamento}
@@ -97,7 +97,7 @@ export default function AnalisisDestino() {
               <p className="text-xl text-slate-600 font-medium leading-relaxed italic">"{sitio.descripcion}"</p>
             </div>
 
-            {/* 3. HORARIO: ABIERTO 24/7 */}
+            {/* 3. HORARIO: ABIERTO 24/7 porque como dije es playa */}
             <div className="space-y-4">
               <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-widest">Estado del Destino</h4>
               <div className="bg-blue-600 p-8 rounded-[2.5rem] shadow-xl shadow-blue-100 flex items-center justify-between text-white">

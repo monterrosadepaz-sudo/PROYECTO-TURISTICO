@@ -18,7 +18,7 @@ L.Marker.prototype.options.icon = DefaultIcon;
 function ActualizarVistaMapa({ coords }) {
   const map = useMap();
   if (coords) {
-    map.flyTo([coords.lat, coords.lng], 16); // Zoom 16 para mayor detalle
+    map.flyTo([coords.lat, coords.lng], 16); 
   }
   return null;
 }
@@ -90,7 +90,7 @@ const MapaFormulario = ({ setUbicacion }) => {
   return (
     <div className="espacio-mapa" style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
       
-      {/* BARRA DE BÚSQUEDA: Ahora está fuera del mapa para que NO desaparezca nunca */}
+      {/* BARRA DE BÚSQUEDA */}
       <div style={{ display: 'flex', gap: '10px' }}>
         <input 
           type="text"
@@ -141,7 +141,7 @@ const MapaFormulario = ({ setUbicacion }) => {
         </MapContainer>
       </div>
 
-      {/* RESULTADO: Aquí aparece el NOMBRE del lugar seleccionado */}
+      {/* RESULTADO de busqueda */}
       {posicion && (
         <div style={{ 
           backgroundColor: '#eff6ff', 

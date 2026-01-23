@@ -5,7 +5,6 @@ export default function MapaInteractivo({ onSelectDepto }) {
 
   const deptoStyle = "fill-slate-300 stroke-white stroke-[2] transition-all duration-300 cursor-pointer hover:fill-blue-600 hover:scale-[1.01] outline-none";
 
-  // He acortado las rutas para evitar el error de "Unterminated string"
   const departamentosSVG = [
        { 
 
@@ -31,7 +30,7 @@ export default function MapaInteractivo({ onSelectDepto }) {
 
   return (
     <div className="relative w-full max-w-4xl mx-auto bg-white p-6 rounded-3xl shadow-inner border border-gray-100">
-      {/* Tooltip con fondo oscuro elegante */}
+      
       <div className={`absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full mb-4 px-4 py-2 bg-blue-900 text-white rounded-lg text-sm font-bold transition-opacity duration-300 pointer-events-none ${hovered ? 'opacity-100' : 'opacity-0'}`}>
         {hovered?.toUpperCase()}
       </div>

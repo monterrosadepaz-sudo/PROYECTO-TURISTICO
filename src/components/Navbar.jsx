@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 
-export default function Navbar({ alClickIngresar, isLogged, alCerrarSesion }) { 
+export default function Navbar({ alClickIngresar, isLogged, rol, alCerrarSesion }) { 
   const navigate = useNavigate();
 
   return (
@@ -20,8 +20,33 @@ export default function Navbar({ alClickIngresar, isLogged, alCerrarSesion }) {
         </div>
         
         <div className="flex items-center gap-4">
+          {/* MOSTRAR SEGÚN ROL */}
+          {isLogged && (
+            <div className="flex items-center gap-4 mr-2 border-r border-blue-700 pr-4">
+              {/* Botón que solo ve el Super Usuario */}
+              {rol === 'super' && (
+                <button 
+                  onClick={() => navigate("/super-dashboard")}
+                  className="text-[10px] font-black uppercase tracking-widest text-amber-400 hover:text-amber-300"
+                >
+                   Sistema
+                </button>
+              )}
+              
+              {/* Botón que ven ambos (Admin y Super) */}
+              {(rol === 'admin' || rol === 'super') && (
+                <button 
+                  onClick={() => navigate("/dashboard")}
+                  className="text-[10px] font-black uppercase tracking-widest text-blue-200 hover:text-white"
+                >
+                  Propuestas
+                </button>
+              )}
+            </div>
+          )}
+
           {isLogged ? (
-            <button onClick={alCerrarSesion} className="text-[10px] font-black uppercase tracking-widest text-blue-200 hover:text-white transition-colors">
+            <button onClick={alCerrarSesion} className="text-[10px] font-black uppercase tracking-widest text-red-300 hover:text-red-100 transition-colors">
               Salir
             </button>
           ) : (

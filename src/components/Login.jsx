@@ -9,13 +9,20 @@ export default function Login({ alEntrar, alCerrar }) {
     setDatos({ ...datos, [e.target.name]: e.target.value });
   };
 
-  const manejarEnvio = (e) => {
+const manejarEnvio = (e) => {
     e.preventDefault();
-    // VALIDACIÓN DE PRUEBA
+    
+    // LÓGICA DE ROLES DE PRUEBA JULIO ESTO ES TEMPORAL XD OBVIAMENTE NO VAMOS A DEJAR LOS DATOS EN CRUDO
     if (datos.correo === 'admin@turismo.sv' && datos.clave === '12345') {
-      alEntrar(); 
-    } else {
-      alert("Acceso denegado. Use admin@turismo.sv / 12345");
+      // Enviamos el rol 'admin' a la función alEntrar que definimos en App.jsx
+      alEntrar('admin'); 
+    } 
+    else if (datos.correo === 'super@turismo.sv' && datos.clave === 'root') {
+      // Enviamos el rol 'super' para el acceso total
+      alEntrar('super');
+    } 
+    else {
+      alert("Acceso denegado. \nAdmin: admin@turismo.sv / 12345 \nSuper: super@turismo.sv / root");
     }
   };
 

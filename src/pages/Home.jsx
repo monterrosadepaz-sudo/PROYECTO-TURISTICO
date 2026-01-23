@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom"; // Importamos
+import { useNavigate } from "react-router-dom"; 
 import MapaInteractivo from "../components/MapaInteractivo";
 import { departamentos } from "../data/departamentos";
 

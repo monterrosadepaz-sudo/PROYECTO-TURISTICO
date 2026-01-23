@@ -1,5 +1,5 @@
 import React from 'react';
-import logoItca from "../assets/ItcaFepade.png";// Asegúrate que el nombre coincida exactamente
+import logoItca from "../assets/ItcaFepade.png";
 
 const Footer = () => {
   return (
@@ -37,7 +37,7 @@ const Footer = () => {
           rel="noopener noreferrer"
           style={{ color: 'white', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}
         >
-          📍 Ver ubicación (ITCA Zacatecoluca)
+           Ver ubicación (ITCA Zacatecoluca)
         </a>
       </div>
 

@@ -54,7 +54,6 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-slate-50 p-8 text-left">
       <div className="max-w-6xl mx-auto space-y-8">
         
-        {/* ENCABEZADO */}
         <div className="flex justify-between items-end border-b border-slate-200 pb-6">
           <div>
             <h2 className="text-3xl font-black text-slate-800 uppercase italic leading-none">Panel de Control</h2>
@@ -70,7 +69,6 @@ export default function AdminDashboard() {
           </nav>
         </div>
 
-        {/* ÁREA DE CONTENIDO */}
         <div className="bg-white rounded-[3rem] shadow-xl border border-slate-100 min-h-[500px] p-10">
           {pestaña === 'pendientes' && (
             <section className="animate-in fade-in duration-500">

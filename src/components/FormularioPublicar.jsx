@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-// 1. Importamos el nuevo componente del mapa
 import MapaFormulario from './MapaFormulario'; 
 
 export default function FormularioPublicar() {
@@ -15,7 +14,7 @@ export default function FormularioPublicar() {
     precios: { adultos: '', ninos: '', terceraEdad: '' },
     nombreColaborador: '',
     correoColaborador: '',
-    telefonoColaborador: '', // <--- Estado para el nuevo campo
+    telefonoColaborador: '',
     horarios: {
       lunes: { abierto: false, inicio: '08:00', fin: '17:00' },
       martes: { abierto: false, inicio: '08:00', fin: '17:00' },
@@ -50,7 +49,7 @@ export default function FormularioPublicar() {
       return;
     }
     
-    // Validación de teléfono (exactamente 8 dígitos)
+    // Validación de teléfono )
     if (formData.telefonoColaborador.length !== 8) {
         alert("Por favor, ingrese un número de teléfono válido (8 dígitos).");
         return;
@@ -103,7 +102,7 @@ export default function FormularioPublicar() {
               </div>
               {formData.ubicacion && (
                 <div className="p-4 bg-green-100 border border-green-200 rounded-2xl text-green-800 text-xs font-bold animate-pulse text-center">
-                  📍 Ubicación marcada: {formData.ubicacion.lat.toFixed(6)}, {formData.ubicacion.lng.toFixed(6)}
+                   Ubicación marcada: {formData.ubicacion.lat.toFixed(6)}, {formData.ubicacion.lng.toFixed(6)}
                 </div>
               )}
             </div>

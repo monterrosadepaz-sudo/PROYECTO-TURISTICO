@@ -7,7 +7,7 @@ const VistaDepartamento = ({ onSeleccionarSitio }) => {
   const navigate = useNavigate();
   const [filtrosActivos, setFiltrosActivos] = useState(['TODOS']);
 
-  // RESTAURADOS: Tus 4 ejemplos originales
+  // Ejemplos Ojo solo son una simulacion
   const destinos = [
     {
       nombre: "Jardines de Primavera",
@@ -75,7 +75,7 @@ const VistaDepartamento = ({ onSeleccionarSitio }) => {
 
   return (
     <div className="p-10 bg-white min-h-screen animate-in fade-in duration-500">
-      {/* CORRECCIÓN: navigate(-1) para volver correctamente */}
+      
       <button 
         onClick={() => navigate(-1)} 
         className="group flex items-center gap-3 text-slate-400 font-bold mb-12 uppercase text-[10px] tracking-widest hover:text-blue-600 transition-all"
