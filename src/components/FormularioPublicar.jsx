@@ -1,18 +1,21 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+// 1. Importamos el nuevo componente del mapa
+import MapaFormulario from './MapaFormulario'; 
 
 export default function FormularioPublicar() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     nombreSitio: '',
     departamento: '',
-    mapaIframe: '', 
+    ubicacion: null, 
     categoria: '', 
     descripcion: '',
     imagenUrl: '',
     precios: { adultos: '', ninos: '', terceraEdad: '' },
     nombreColaborador: '',
     correoColaborador: '',
+    telefonoColaborador: '', // <--- Estado para el nuevo campo
     horarios: {
       lunes: { abierto: false, inicio: '08:00', fin: '17:00' },
       martes: { abierto: false, inicio: '08:00', fin: '17:00' },
@@ -33,19 +36,29 @@ export default function FormularioPublicar() {
   const manejarCambio = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
   const manejarCheck = (e) => setFormData({ ...formData, permisos: { ...formData.permisos, [e.target.name]: e.target.checked } });
   const manejarPrecio = (e) => setFormData({ ...formData, precios: { ...formData.precios, [e.target.name]: e.target.value } });
-  const manejarHorario = (dia, campo, valor) => setFormData({ ...formData, horarios: { ...formData.horarios, [dia]: { ...formData.horarios[dia], [campo]: valor } } });
+  const manejarHorario = (dia, campo, valor) => setFormData({ ...formData, horarios: { ...formData.horarios[dia], [campo]: valor } });
 
-  const extraerUrlMapa = (html) => {
-    const match = html.match(/src="([^"]+)"/);
-    return match ? match[1] : null;
+  // 2. Función para recibir la ubicación desde el componente MapaFormulario
+  const setUbicacion = (coords) => {
+    setFormData({ ...formData, ubicacion: coords });
   };
-
-  const urlMapaSegura = extraerUrlMapa(formData.mapaIframe);
 
   const manejarEnvio = (e) => {
     e.preventDefault();
-    alert("Propuesta enviada con éxito. Nuestro equipo revisará los datos.");
-    navigate("/"); // Volver al inicio tras enviar
+    if (!formData.ubicacion) {
+      alert("Por favor, selecciona una ubicación en el mapa.");
+      return;
+    }
+    
+    // Validación de teléfono (exactamente 8 dígitos)
+    if (formData.telefonoColaborador.length !== 8) {
+        alert("Por favor, ingrese un número de teléfono válido (8 dígitos).");
+        return;
+    }
+
+    console.log("Datos a enviar:", formData);
+    alert(`Propuesta enviada con éxito. Nos pondremos en contacto al +503 ${formData.telefonoColaborador}`);
+    navigate("/");
   };
 
   return (
@@ -83,12 +96,14 @@ export default function FormularioPublicar() {
             <h4 className="text-blue-700 text-xs font-black uppercase tracking-[0.2em]">02. Ubicación Cartográfica</h4>
             <div className="bg-blue-50/50 rounded-[2rem] p-8 border border-blue-100 space-y-6">
               <div className="bg-blue-800 p-5 rounded-2xl text-white shadow-lg text-xs leading-relaxed font-semibold">
-                  Instrucciones: Copie el código HTML de "Incorporar mapa" de Google Maps y péguelo abajo.
+                  Instrucciones: Haz clic en el mapa para marcar el punto exacto donde se encuentra el lugar turístico.
               </div>
-              <textarea name="mapaIframe" onChange={manejarCambio} required className="w-full px-5 py-4 rounded-2xl border border-slate-200 focus:border-blue-500 outline-none text-slate-600 font-mono text-[10px] h-24 bg-white" placeholder='Pega el código HTML aquí...' />
-              {urlMapaSegura && (
-                <div className="rounded-[1.5rem] overflow-hidden border-4 border-white shadow-xl h-56">
-                  <iframe src={urlMapaSegura} title="Vista previa mapa" width="100%" height="100%" style={{ border: 0 }} loading="lazy"></iframe>
+              <div className="rounded-[1.5rem] overflow-hidden border-4 border-white shadow-xl h-80 bg-white">
+                <MapaFormulario setUbicacion={setUbicacion} />
+              </div>
+              {formData.ubicacion && (
+                <div className="p-4 bg-green-100 border border-green-200 rounded-2xl text-green-800 text-xs font-bold animate-pulse text-center">
+                  📍 Ubicación marcada: {formData.ubicacion.lat.toFixed(6)}, {formData.ubicacion.lng.toFixed(6)}
                 </div>
               )}
             </div>
@@ -179,15 +194,38 @@ export default function FormularioPublicar() {
             </div>
           </div>
 
-          {/* 07. IDENTIFICACIÓN */}
+          {/* 07. IDENTIFICACIÓN (CON TELÉFONO +503) */}
           <div className="pt-10 border-t border-slate-200 space-y-6">
-            <h4 className="text-blue-700 text-xs font-black uppercase tracking-[0.2em]">07. Identificación</h4>
+            <h4 className="text-blue-700 text-xs font-black uppercase tracking-[0.2em]">07. Identificación del Colaborador</h4>
+            
             <div className="bg-green-50 p-4 rounded-2xl border border-green-100 flex items-start gap-3 text-left">
               <p className="text-[10px] text-green-800 font-semibold leading-relaxed">Seguridad de datos: Su información personal se utiliza exclusivamente para validar la propuesta.</p>
             </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <input name="nombreColaborador" onChange={manejarCambio} required className="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-white text-slate-700 focus:border-blue-500 outline-none" placeholder="Nombre Completo" />
               <input name="correoColaborador" type="email" onChange={manejarCambio} required className="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-white text-slate-700 focus:border-blue-500 outline-none" placeholder="correo@ejemplo.com" />
+              
+              {/* Campo de Teléfono con Prefijo Fijo */}
+              <div className="flex shadow-sm rounded-2xl overflow-hidden border border-slate-200 focus-within:border-blue-500 transition-all md:col-span-2">
+                <span className="bg-slate-100 px-5 py-4 text-slate-500 font-bold border-r border-slate-200 flex items-center justify-center">
+                  +503
+                </span>
+                <input 
+                  name="telefonoColaborador"
+                  type="tel"
+                  maxLength="8"
+                  onChange={(e) => {
+                    // Solo permite números
+                    const valor = e.target.value.replace(/\D/g, '');
+                    setFormData({ ...formData, telefonoColaborador: valor });
+                  }}
+                  value={formData.telefonoColaborador}
+                  required 
+                  className="flex-1 px-5 py-4 bg-white text-slate-700 outline-none font-bold tracking-[0.3em]" 
+                  placeholder="00000000" 
+                />
+              </div>
             </div>
           </div>
 
