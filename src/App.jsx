@@ -9,21 +9,19 @@ import Login from "./components/Login";
 import Footer from "./components/Footer";
 import AdminDashboard from "./components/AdminDashboard"; 
 import AnalisisDestino from "./components/AnalisisDestino"; 
-import SuperDashboard from "./components/SuperDashboard"; // PANEL DEL SUPER USUARIO
+import SuperDashboard from "./components/SuperDashboard";
+// 1. IMPORTAR EL NUEVO COMPONENTE
+import RestablecerClave from "./components/RestablecerClave"; 
 
 function AppContent() {
   const navigate = useNavigate();
   const [sitioSeleccionado, setSitioSeleccionado] = useState(null);
   const [mostrarLogin, setMostrarLogin] = useState(false);
-  
-  // Estado para el Rol ('admin', 'super' o null)
   const [rolUsuario, setRolUsuario] = useState(null);
 
   const manejarLoginExitoso = (rolRecibido) => {
     setRolUsuario(rolRecibido);
     setMostrarLogin(false);
-    
-    // Redirección inteligente según nivel de acceso
     if (rolRecibido === 'super') {
       navigate("/super-dashboard");
     } else {
@@ -54,13 +52,19 @@ function AppContent() {
 
       <div className="flex-grow"> 
         <Routes>
-          {/* RUTAS PÚBLICAS */}
           <Route path="/" element={<Home />} />
           <Route path="/departamento/:nombreDepto" element={<VistaDepartamento onSeleccionarSitio={setSitioSeleccionado} />} />
           <Route path="/destino" element={<DetalleDestino sitio={sitioSeleccionado} />} />
           <Route path="/publicar" element={<FormularioPublicar />} />
           
-          {/* RUTA DE ADMINISTRADOR (Accesible también para Super Usuario) */}
+          {/* 2. NUEVA RUTA PÚBLICA PARA RESTABLECER CONTRASEÑA */}
+          <Route 
+            path="/restablecer" 
+            element={
+              <RestablecerClave alTerminar={() => setMostrarLogin(true)} />
+            } 
+          />
+          
           <Route 
             path="/dashboard" 
             element={
@@ -72,12 +76,11 @@ function AppContent() {
             } 
           />
 
-          {/* RUTA DE SUPER USUARIO (Panel Maestro) */}
           <Route 
             path="/super-dashboard" 
             element={
               rolUsuario === 'super' ? (
-                <SuperDashboard /> // 2. COMPONENTE REAL VINCULADO
+                <SuperDashboard />
               ) : (
                 <Navigate to="/" replace />
               )
