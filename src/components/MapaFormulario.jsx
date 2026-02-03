@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -14,27 +14,34 @@ let DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
-// Componente para que el mapa se mueva solo al buscar
+// Componente interno para mover la cámara del mapa
 function ActualizarVistaMapa({ coords }) {
   const map = useMap();
-  if (coords) {
-    map.flyTo([coords.lat, coords.lng], 16); 
-  }
+  useEffect(() => {
+    if (coords && coords.lat && coords.lng) {
+      map.flyTo([coords.lat, coords.lng], 16, { animate: true, duration: 1.5 });
+    }
+  }, [coords, map]);
   return null;
 }
 
-const MapaFormulario = ({ setUbicacion }) => {
+const MapaFormulario = ({ setUbicacion, ubicacionActual }) => {
   const [posicion, setPosicion] = useState(null);
   const [nombreLugar, setNombreLugar] = useState("");
   const [terminoBusqueda, setTerminoBusqueda] = useState("");
   const [cargando, setCargando] = useState(false);
 
-  // Función para obtener el nombre del lugar (Reverse Geocoding)
+  // Sincronizar posición local si cambia desde afuera (inputs manuales)
+  useEffect(() => {
+    if (ubicacionActual) {
+      setPosicion(ubicacionActual);
+    }
+  }, [ubicacionActual]);
+
   const obtenerNombreLugar = async (lat, lng) => {
     try {
       const resp = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
       const data = await resp.json();
-      // Buscamos el nombre más relevante (negocio, calle o municipio)
       const nombre = data.display_name || "Lugar seleccionado";
       setNombreLugar(nombre);
       return nombre;
@@ -50,7 +57,6 @@ const MapaFormulario = ({ setUbicacion }) => {
     setCargando(true);
 
     try {
-      // Buscamos con detalles de dirección para obtener el nombre completo
       const respuesta = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&q=${terminoBusqueda}, El Salvador&addressdetails=1`
       );
@@ -77,10 +83,11 @@ const MapaFormulario = ({ setUbicacion }) => {
     useMapEvents({
       async click(e) {
         const { lat, lng } = e.latlng;
-        setPosicion({ lat, lng });
+        const coords = { lat, lng };
+        setPosicion(coords);
         setCargando(true);
         const nombre = await obtenerNombreLugar(lat, lng);
-        setUbicacion({ lat, lng, nombre });
+        setUbicacion({ ...coords, nombre });
         setCargando(false);
       },
     });
@@ -90,7 +97,7 @@ const MapaFormulario = ({ setUbicacion }) => {
   return (
     <div className="espacio-mapa" style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
       
-      {/* BARRA DE BÚSQUEDA */}
+      {/* BARRA DE BÚSQUEDA PERSISTENTE */}
       <div style={{ display: 'flex', gap: '10px' }}>
         <input 
           type="text"
@@ -137,11 +144,12 @@ const MapaFormulario = ({ setUbicacion }) => {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           <ClickMapa />
+          {/* Mueve la cámara cuando 'posicion' cambia (ya sea por clic, busqueda o input manual) */}
           <ActualizarVistaMapa coords={posicion} />
         </MapContainer>
       </div>
 
-      {/* RESULTADO de busqueda */}
+      {/* RESULTADO DE SELECCIÓN */}
       {posicion && (
         <div style={{ 
           backgroundColor: '#eff6ff', 
@@ -150,13 +158,13 @@ const MapaFormulario = ({ setUbicacion }) => {
           border: '1px solid #bfdbfe'
         }}>
           <p style={{ fontSize: '14px', color: '#1e40af', fontWeight: 'bold', margin: '0 0 5px 0' }}>
-            📍 Lugar seleccionado:
+            📍 Punto Seleccionado:
           </p>
           <p style={{ fontSize: '13px', color: '#334155', margin: '0' }}>
-            {nombreLugar}
+            {nombreLugar || "Ubicación detectada por coordenadas"}
           </p>
-          <p style={{ fontSize: '11px', color: '#64748b', marginTop: '5px' }}>
-            Coordenadas: {posicion.lat.toFixed(6)}, {posicion.lng.toFixed(6)}
+          <p style={{ fontSize: '11px', color: '#64748b', marginTop: '5px', fontWeight: 'bold' }}>
+            {posicion.lat.toFixed(6)}, {posicion.lng.toFixed(6)}
           </p>
         </div>
       )}
