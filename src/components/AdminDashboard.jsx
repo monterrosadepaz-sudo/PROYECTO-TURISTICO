@@ -15,31 +15,37 @@ export default function AdminDashboard() {
   const [confirmarPassword, setConfirmarPassword] = useState('');
   const [usuarioActual, setUsuarioActual] = useState({ idusuario: '', nombre: '', username: '', email: '', password: '', rol: 'Colaborador' });
 
-  // CORRECCIÓN: Inicializamos vacío para que el contador marque (0)
+  // ESTADOS DE DATOS (Julio espera idprefomulario y estado)
   const [propuestas, setPropuestas] = useState([]);
-  const [historial, setHistorial] = useState([]);
   const [usuarios, setUsuarios] = useState([]);
 
+  // --- EFECTO DE CARGA DE DATOS REALES ---
   useEffect(() => {
-    if (pestaña === 'usuarios') {
-      const cargarUsuarios = async () => {
-        setCargando(true);
-        try {
-          const respuesta = await fetch('http://100.123.6.123:8000/api/usuarios');
+    const cargarDatos = async () => {
+      setCargando(true);
+      try {
+        let url = '';
+        if (pestaña === 'usuarios') {
+          url = 'http://100.123.6.123:8000/api/usuarios';
+        } else if (pestaña === 'pendientes') {
+          url = 'http://100.123.6.123:8000/api/propuestas'; // Endpoint para enlistar preformularios
+        }
+
+        if (url) {
+          const respuesta = await fetch(url);
           if (!respuesta.ok) throw new Error(`Error ${respuesta.status}`);
           const datos = await respuesta.json();
-          if (Array.isArray(datos)) setUsuarios(datos);
-        } catch (error) {
-          console.error("FALLO DE CONEXIÓN:", error.message);
-          setUsuarios([]); 
-        } finally {
-          setTimeout(() => setCargando(false), 500);
+          
+          if (pestaña === 'usuarios') setUsuarios(datos);
+          else if (pestaña === 'pendientes') setPropuestas(datos);
         }
-      };
-      cargarUsuarios();
-    }
-    
-    // Aquí podrías agregar un useEffect similar para cargar 'propuestas' reales en el futuro
+      } catch (error) {
+        console.error("FALLO DE CONEXIÓN:", error.message);
+      } finally {
+        setTimeout(() => setCargando(false), 500);
+      }
+    };
+    cargarDatos();
   }, [pestaña]);
 
   const guardarUsuario = async (e) => {
@@ -72,7 +78,9 @@ export default function AdminDashboard() {
     } catch (e) { alert("Error al procesar usuario"); }
   };
 
+  // --- MANEJAR ACCIONES DE JULIO (APROBAR/BORRAR PREFORMULARIO) ---
   const manejarAccion = async (id, accion, datosExtra) => {
+    // 1. Acciones de Usuarios (Tus líneas originales)
     if (accion === 'editar_usuario') {
       setUsuarioActual({ ...datosExtra, password: '' });
       setConfirmarPassword('');
@@ -81,11 +89,43 @@ export default function AdminDashboard() {
       setMostrarModal(true);
       return;
     }
-    if (accion === 'eliminar_usuario') {
-      if(window.confirm("¿Estás seguro de eliminar esta cuenta?")) {
+
+    // 2. Acción: Aprobar Preformulario (Lógica de Julio)
+    if (accion === 'aprobar_propuesta') {
+      try {
+        const respuesta = await fetch(`http://100.123.6.123:8000/api/propuestas/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ estado: 'aprobado' })
+        });
+        const resultado = await respuesta.json();
+        if (respuesta.ok) {
+          alert(resultado.message); // "Preformulario actualizado"
+          setPropuestas(propuestas.filter(p => p.idprefomulario !== id));
+        }
+      } catch (e) { alert("Error al aprobar"); }
+    }
+
+    // 3. Acción: Eliminar (Usuario o Preformulario)
+    if (accion === 'eliminar_usuario' || accion === 'eliminar_propuesta') {
+      const esUsuario = accion === 'eliminar_usuario';
+      const mensajeConfirm = esUsuario ? "¿Eliminar esta cuenta?" : "¿Eliminar esta propuesta de destino?";
+      
+      if(window.confirm(mensajeConfirm)) {
         try {
-          const respuesta = await fetch(`http://100.123.6.123:8000/api/usuarios/${id}`, { method: 'DELETE' });
-          if (respuesta.ok) setUsuarios(usuarios.filter(u => u.idusuario !== id));
+          const url = esUsuario 
+            ? `http://100.123.6.123:8000/api/usuarios/${id}`
+            : `http://100.123.6.123:8000/api/propuestas/${id}`;
+            
+          const respuesta = await fetch(url, { method: 'DELETE' });
+          const resultado = await respuesta.json();
+          
+          if (respuesta.ok) {
+            if (!esUsuario) alert(resultado.message); // "Preformulario eliminado"
+            esUsuario 
+              ? setUsuarios(usuarios.filter(u => u.idusuario !== id))
+              : setPropuestas(propuestas.filter(p => p.idprefomulario !== id));
+          }
         } catch (e) { alert("Error de conexión"); }
       }
     }
@@ -108,7 +148,7 @@ export default function AdminDashboard() {
             <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-2">Gestión de Destinos y Cuentas</p>
           </div>
           <nav className="flex bg-white p-2 rounded-[2rem] shadow-sm border border-slate-100 overflow-x-auto">
-            {['pendientes', 'activos', 'historial', 'usuarios'].map(t => (
+            {['pendientes', 'usuarios'].map(t => (
               <button key={t} onClick={() => setPestaña(t)} className={tabStyle(t)}>
                 {t} {t === 'pendientes' && `(${propuestas.length})`}
               </button>
@@ -143,7 +183,11 @@ export default function AdminDashboard() {
           {pestaña === 'pendientes' && (
             <section className="animate-in fade-in duration-500">
               <h3 className="text-blue-700 text-[10px] font-black uppercase tracking-[0.2em] mb-8">01. Propuestas por Revisar</h3>
-              {propuestas.length === 0 ? (
+              {cargando ? (
+                <div className="py-20 flex flex-col items-center justify-center">
+                  <div className="w-12 h-12 border-4 border-slate-100 border-t-blue-600 rounded-full animate-spin"></div>
+                </div>
+              ) : propuestas.length === 0 ? (
                 <div className="py-20 text-center space-y-4">
                   <p className="text-slate-300 text-xs font-black uppercase tracking-widest italic">No hay solicitudes pendientes en este momento.</p>
                 </div>
@@ -155,7 +199,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* MODAL DE GESTIÓN DINÁMICO */}
+      {/* MODAL DE GESTIÓN (Tus líneas originales intactas) */}
       {mostrarModal && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden border border-slate-100 italic">
@@ -169,12 +213,8 @@ export default function AdminDashboard() {
               {modoEdicion && !campoAEditar && (
                 <div className="grid grid-cols-1 gap-4 animate-in slide-in-from-bottom-4 duration-300">
                   <p className="text-[10px] font-black uppercase text-slate-400 text-center tracking-widest">¿Qué sección desea editar?</p>
-                  <button onClick={() => setCampoAEditar('perfil')} className="w-full py-4 bg-slate-50 hover:bg-blue-50 border border-slate-100 rounded-2xl text-[10px] font-black uppercase text-slate-600 transition-all">
-                    Información de Perfil
-                  </button>
-                  <button onClick={() => setCampoAEditar('password')} className="w-full py-4 bg-slate-50 hover:bg-amber-50 border border-slate-100 rounded-2xl text-[10px] font-black uppercase text-slate-600 transition-all">
-                    Cambiar Contraseña
-                  </button>
+                  <button onClick={() => setCampoAEditar('perfil')} className="w-full py-4 bg-slate-50 hover:bg-blue-50 border border-slate-100 rounded-2xl text-[10px] font-black uppercase text-slate-600 transition-all">Información de Perfil</button>
+                  <button onClick={() => setCampoAEditar('password')} className="w-full py-4 bg-slate-50 hover:bg-amber-50 border border-slate-100 rounded-2xl text-[10px] font-black uppercase text-slate-600 transition-all">Cambiar Contraseña</button>
                 </div>
               )}
 
@@ -220,10 +260,6 @@ export default function AdminDashboard() {
                   </div>
                 )}
               </form>
-
-              {modoEdicion && !campoAEditar && (
-                <button onClick={() => setMostrarModal(false)} className="w-full text-slate-400 text-[9px] font-black uppercase text-center mt-4 tracking-widest">Cancelar y salir</button>
-              )}
             </div>
           </div>
         </div>

@@ -2,6 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MapaFormulario from './MapaFormulario'; 
 
+// --- COMPONENTE INTERNO: MODAL DE ÉXITO ---
+const ModalExito = ({ visible, alCerrar, correo }) => {
+  if (!visible) return null;
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-blue-900/80 backdrop-blur-md animate-in fade-in duration-500">
+      <div className="bg-white w-full max-w-sm rounded-[3rem] p-10 text-center shadow-2xl border border-blue-100 italic">
+        <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-6 shadow-sm font-black">✓</div>
+        <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tighter mb-4">¡Propuesta Enviada!</h2>
+        <p className="text-slate-500 text-[11px] leading-relaxed mb-8 uppercase">
+          Tu destino ha sido registrado correctamente. Se ha enviado una confirmación a: 
+          <span className="block text-blue-600 font-black mt-2 underline decoration-blue-100 underline-offset-4">{correo}</span>
+        </p>
+        <button onClick={alCerrar} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl shadow-lg shadow-blue-200 text-[10px] uppercase tracking-widest transition-all active:scale-95">VOLVER AL MAPA</button>
+      </div>
+    </div>
+  );
+};
+
 export default function FormularioPublicar() {
   const navigate = useNavigate();
 
@@ -16,22 +34,19 @@ export default function FormularioPublicar() {
 
   // 2. ESTADO PARA EL CORREO REAL DE LA BASE DE DATOS
   const [correoBD, setCorreoBD] = useState(sesionActiva.correo);
+  const [mostrarExito, setMostrarExito] = useState(false); // Estado para el Modal de éxito
 
   // 3. EFECTO REFORZADO CONTRA 'UNDEFINED'
   useEffect(() => {
     const obtenerCorreoOficial = async () => {
-      // EVITAMOS EL ERROR 500: Solo consultamos si el ID existe realmente
       if (!sesionActiva.idusuario) {
         console.warn("No se encontró ID de usuario en la sesión.");
         return;
       }
-
       try {
-        // Consultamos la ruta oficial de Julio usando el ID verificado
         const respuesta = await fetch(`http://100.123.6.123:8000/api/usuarios/${sesionActiva.idusuario}`);
         if (respuesta.ok) {
           const datos = await respuesta.json();
-          // Sincronizamos con el correo real de la BD (ej: mikelxd503@gmail.com)
           if (datos.email) setCorreoBD(datos.email);
         }
       } catch (error) {
@@ -41,7 +56,7 @@ export default function FormularioPublicar() {
     obtenerCorreoOficial();
   }, [sesionActiva.idusuario]);
 
-  // --- TUS ESTADOS ORIGINALES (MANTENIDOS INTACTOS) ---
+  // --- TUS ESTADOS ORIGINALES ---
   const [archivosFotos, setArchivosFotos] = useState([]); 
   const [previews, setPreviews] = useState([]); 
   const [cargando, setCargando] = useState(false);
@@ -71,7 +86,18 @@ export default function FormularioPublicar() {
     }
   });
 
-  // --- TUS FUNCIONES ORIGINALES (MANTENIDAS INTACTAS) ---
+  // --- FUNCIÓN DE CODIFICACIÓN (ACTUALIZACIÓN MIGUELITO) ---
+  const generarNombreImagen = (archivo, objetivo, carpeta) => {
+    const hoy = new Date();
+    const dia = String(hoy.getDate()).padStart(2, '0');
+    const mes = String(hoy.getMonth() + 1).padStart(2, '0');
+    const anio = hoy.getFullYear();
+    const fechaCodificada = `${dia}${mes}${anio}`;
+    const extension = archivo.name.split('.').pop();
+    return `0000${fechaCodificada}${objetivo}${carpeta}.${extension}`;
+  };
+
+  // --- TUS FUNCIONES ORIGINALES ---
   const manejarCambio = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
   const manejarCheck = (e) => setFormData({ ...formData, permisos: { ...formData.permisos, [e.target.name]: e.target.checked } });
   const manejarPrecio = (e) => setFormData({ ...formData, precios: { ...formData.precios, [e.target.name]: e.target.value } });
@@ -113,6 +139,7 @@ export default function FormularioPublicar() {
     }
   };
 
+  // --- ACTUALIZACIÓN BASADA EN EL JSON ESPERADO POR JULIO ---
   const manejarEnvio = async (e) => {
     e.preventDefault();
     if (!formData.ubicacion) return alert("Por favor, selecciona una ubicación en el mapa.");
@@ -120,33 +147,59 @@ export default function FormularioPublicar() {
 
     setCargando(true);
     const data = new FormData();
-    data.append('nombreSitio', formData.nombreSitio);
+
+    // 1. Datos Generales mapeados al JSON de Julio
+    data.append('nombre', formData.nombreSitio);
     data.append('departamento', formData.departamento);
-    data.append('descripcion', formData.descripcion);
-    data.append('categoria', formData.categoria);
     
-    // ENVIAMOS EL CORREO OFICIAL SINCRONIZADO
-    data.append('telefono', sesionActiva.telefono);
-    data.append('email', correoBD); 
-    data.append('colaborador', sesionActiva.nombre);
-    data.append('rol', sesionActiva.rol); 
+    // 2. Ubicación con nombres de llaves específicos
+    const coordsJulio = {
+      latitud: formData.ubicacion.lat,
+      longitud: formData.ubicacion.lng
+    };
+    data.append('ubicacion', JSON.stringify(coordsJulio));
+
+    // 3. Clasificación (Array) y Costo
+    data.append('clasificacion', JSON.stringify([formData.categoria.toLowerCase()]));
+    data.append('costo_entrada', parseFloat(formData.precios.adultos) || 0);
+
+    // 4. Políticas con guiones bajos
+    const politicasJulio = {
+      traer_comida: formData.permisos.comida,
+      gaseosas_agua: formData.permisos.bebidasGaseosas,
+      alcohol: formData.permisos.bebidasAlcoholicas,
+      mascotas: formData.permisos.mascotas,
+      mesas_sillas: formData.permisos.mesasSillas,
+      hamacas: formData.permisos.hamacas,
+      parrillas_cocinas: formData.permisos.parrillasCocinas,
+      armas_de_fuego: formData.permisos.armasFuego
+    };
+    data.append('politicas', JSON.stringify(politicasJulio));
+
+    // 5. Horarios simplificados (abierto/cerrado)
+    const horariosJulio = {};
+    Object.keys(formData.horarios).forEach(dia => {
+      horariosJulio[dia] = formData.horarios[dia].abierto ? "abierto" : "cerrado";
+    });
+    data.append('horarios', JSON.stringify(horariosJulio));
     
-    archivosFotos.forEach((archivo, i) => data.append(`fotos[${i}]`, archivo));
-    data.append('ubicacion', JSON.stringify(formData.ubicacion));
-    data.append('precios', JSON.stringify(formData.precios));
-    data.append('horarios', JSON.stringify(formData.horarios));
-    data.append('permisos', JSON.stringify(formData.permisos));
+    // 6. Integración del formato de imágenes bautizado
+    archivosFotos.forEach((archivo, i) => {
+      const nombreCodificado = generarNombreImagen(archivo, "preformulario", "preformularios");
+      data.append('imagenes[]', archivo, nombreCodificado);
+    });
 
     try {
       const respuesta = await fetch('http://100.123.6.123:8000/api/propuestas', {
         method: 'POST',
+        headers: { 'Accept': 'application/json' },
         body: data,
       });
       if (respuesta.ok) {
-        alert(`Propuesta enviada con éxito. Se te informará al correo: ${correoBD}`);
-        navigate("/");
+        setMostrarExito(true); // Se activa el modal en lugar del alert tradicional
       } else {
-        throw new Error("Error en el servidor de Julio.");
+        const resErr = await respuesta.json();
+        throw new Error(resErr.message || "Error en el servidor central.");
       }
     } catch (error) {
       alert("Error al enviar: " + error.message);
@@ -157,19 +210,16 @@ export default function FormularioPublicar() {
 
   return (
     <div className="min-h-screen py-12 px-4 flex justify-center items-start bg-slate-100/50 italic text-left">
+      <ModalExito visible={mostrarExito} alCerrar={() => navigate("/")} correo={correoBD} />
+      
       <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl border border-slate-200 overflow-hidden text-slate-800">
-        
         <div className="bg-blue-800 p-10 text-white relative z-[50]">
           <h3 className="text-3xl font-black tracking-tight uppercase italic text-center leading-none">Publicar Nuevo Destino</h3>
-          <p className="text-blue-100 text-[10px] mt-3 uppercase font-black tracking-[0.2em] text-center italic">
-            Sesión Activa: {sesionActiva.rol}
-          </p>
+          <p className="text-blue-100 text-[10px] mt-3 uppercase font-black tracking-[0.2em] text-center italic">Sesión Activa: {sesionActiva.rol}</p>
           <button onClick={() => navigate(-1)} className="absolute top-8 right-8 bg-white/10 hover:bg-white/20 p-3 rounded-2xl transition-all font-black">✕</button>
         </div>
 
         <form onSubmit={manejarEnvio} className="p-10 space-y-12">
-          
-          {/* SECCIÓN 01: DATOS GENERALES */}
           <div className="space-y-6">
             <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-[0.2em]">01. Datos Generales</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -187,7 +237,6 @@ export default function FormularioPublicar() {
             </div>
           </div>
 
-          {/* SECCIÓN 02: UBICACIÓN */}
           <div className="space-y-6">
             <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-[0.2em]">02. Ubicación Cartográfica</h4>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 p-4 rounded-3xl border border-slate-100 shadow-inner">
@@ -204,16 +253,13 @@ export default function FormularioPublicar() {
                </div>
             </div>
             <div className="bg-blue-50/30 rounded-[2.5rem] p-8 border border-blue-100/50 space-y-6">
-              <div className="bg-blue-800 p-5 rounded-2xl text-white shadow-lg text-[9px] leading-relaxed font-black uppercase tracking-widest text-center italic">
-                  Haz clic en el mapa para marcar el sitio o ingresa coordenadas arriba.
-              </div>
+              <div className="bg-blue-800 p-5 rounded-2xl text-white shadow-lg text-[9px] leading-relaxed font-black uppercase tracking-widest text-center italic">Haz clic en el mapa para marcar el sitio o ingresa coordenadas arriba.</div>
               <div className="rounded-[2rem] overflow-hidden border-4 border-white shadow-2xl h-80 bg-white relative z-0">
                 <MapaFormulario setUbicacion={setUbicacion} ubicacionActual={formData.ubicacion} />
               </div>
             </div>
           </div>
 
-          {/* SECCIONES 03 - 05: CLASIFICACIÓN, HORARIOS Y DESCRIPCIÓN */}
           <div className="space-y-8">
             <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-[0.2em]">03. Clasificación y Políticas</h4>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -270,7 +316,6 @@ export default function FormularioPublicar() {
             </div>
           </div>
 
-          {/* SECCIÓN 06: FOTOS (Diseño Original Restaurado) */}
           <div className="space-y-4">
             <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-[0.2em]">06. Fotografía del Destino (MÁX. 10)</h4>
             <div className="space-y-4">
@@ -289,43 +334,27 @@ export default function FormularioPublicar() {
                     </div>
                   ))}
                   {previews.length < 10 && (
-                    <label className="flex items-center justify-center h-32 border-2 border-dashed border-slate-300 rounded-2xl cursor-pointer hover:bg-slate-50 transition-all">
-                      <input type="file" accept="image/*" multiple onChange={manejarArchivos} className="hidden" />
-                      <span className="text-blue-600 font-black">+</span>
-                    </label>
+                    <label className="flex items-center justify-center h-32 border-2 border-dashed border-slate-300 rounded-2xl cursor-pointer hover:bg-slate-50 transition-all"><input type="file" accept="image/*" multiple onChange={manejarArchivos} className="hidden" /><span className="text-blue-600 font-black">+</span></label>
                   )}
                 </div>
               )}
             </div>
           </div>
 
-          {/* SECCIÓN 07: IDENTIFICACIÓN (Sincronizada con la BD real) */}
           <div className="pt-10 border-t border-slate-200 space-y-6">
             <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-[0.2em]">07. Identificación del Colaborador</h4>
-            
             <div className="bg-blue-50/50 p-10 rounded-[2.5rem] border border-blue-100 space-y-8 relative overflow-hidden group">
               <div className="flex flex-col gap-2 relative z-10">
                 <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-1 italic">Emisor de la propuesta</p>
-                <h4 className="text-slate-800 font-black uppercase italic text-lg leading-tight">
-                    Esta petición será enviada bajo el nombre de: <span className="text-blue-600">{sesionActiva.nombre}</span>
-                </h4>
+                <h4 className="text-slate-800 font-black uppercase italic text-lg leading-tight">Esta petición será enviada bajo el nombre de: <span className="text-blue-600">{sesionActiva.nombre}</span></h4>
               </div>
-              
               <div className="h-px bg-blue-100/50 w-full relative z-10"></div>
-              
               <div className="flex items-start gap-4 p-5 bg-white/50 rounded-2xl border border-blue-100/50 shadow-sm transition-all group-hover:bg-white relative z-10">
                 <div className="bg-blue-600 text-white w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black italic shadow-lg shadow-blue-200">!</div>
                 <div className="space-y-1">
-                   <p className="text-slate-500 text-[10px] font-bold uppercase tracking-tight leading-relaxed italic">
-                    Se le informará por medio de su correo electrónico oficial:
-                   </p>
-                   {/* MOSTRAMOS EL CORREO RECUPERADO DE LA BD */}
-                   <p className="text-blue-600 font-black text-xs underline decoration-blue-200 underline-offset-4 italic">
-                    {correoBD}
-                   </p>
-                   <p className="text-slate-400 text-[9px] font-medium uppercase mt-2 italic">
-                    Información verificada desde el servidor central.
-                   </p>
+                   <p className="text-slate-500 text-[10px] font-bold uppercase tracking-tight leading-relaxed italic">Se le informará por medio de su correo electrónico oficial:</p>
+                   <p className="text-blue-600 font-black text-xs underline decoration-blue-200 underline-offset-4 italic">{correoBD}</p>
+                   <p className="text-slate-400 text-[9px] font-medium uppercase mt-2 italic">Información verificada desde el servidor central.</p>
                 </div>
               </div>
             </div>
@@ -333,9 +362,7 @@ export default function FormularioPublicar() {
 
           <div className="flex gap-4 pt-8">
             <button type="button" onClick={() => navigate(-1)} className="flex-1 bg-slate-50 hover:bg-slate-100 text-slate-400 border border-slate-200 font-black py-5 rounded-3xl transition-all text-[10px] uppercase tracking-widest italic">CANCELAR</button>
-            <button type="submit" disabled={cargando} className="flex-[2] bg-blue-600 hover:bg-blue-700 text-white font-black py-5 rounded-3xl shadow-xl shadow-blue-200 transform active:scale-95 transition-all text-[10px] uppercase tracking-widest disabled:opacity-50 italic">
-              {cargando ? 'PROCESANDO ENVÍO...' : 'ENVIAR PROPUESTA A REVISIÓN'}
-            </button>
+            <button type="submit" disabled={cargando} className="flex-[2] bg-blue-600 hover:bg-blue-700 text-white font-black py-5 rounded-3xl shadow-xl shadow-blue-200 transform active:scale-95 transition-all text-[10px] uppercase tracking-widest disabled:opacity-50 italic">{cargando ? 'PROCESANDO ENVÍO...' : 'ENVIAR PROPUESTA A REVISIÓN'}</button>
           </div>
         </form>
       </div>

@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react"; // Se agregó useEffect
+import { useState, useEffect } from "react"; 
 import Home from "./pages/Home";
 import VistaDepartamento from "./components/VistaDepartamento";
 import FormularioPublicar from "./components/FormularioPublicar";
@@ -10,28 +10,55 @@ import Footer from "./components/Footer";
 import AdminDashboard from "./components/AdminDashboard"; 
 import AnalisisDestino from "./components/AnalisisDestino"; 
 import RestablecerClave from "./components/RestablecerClave"; 
+import MisPropuestas from "./components/MisPropuestas"; 
+import PerfilUsuario from "./components/PerfilUsuario"; 
 
 function AppContent() {
   const navigate = useNavigate();
   const [sitioSeleccionado, setSitioSeleccionado] = useState(null);
   const [mostrarLogin, setMostrarLogin] = useState(false);
   const [rolUsuario, setRolUsuario] = useState(null);
+  const [fotoUsuario, setFotoUsuario] = useState(null); 
   const [queriaPublicar, setQueriaPublicar] = useState(false);
+  const [cargandoSesion, setCargandoSesion] = useState(true);
 
-  // NUEVO: Recuperar sesión al cargar la App para no perder el rol
+  // URL por defecto definida por Julio para el sistema
+  const FOTO_DEFAULT = "http://100.123.6.123:8000/storage/usuarios/perfil.png";
+
   useEffect(() => {
     const usuarioGuardado = JSON.parse(localStorage.getItem('usuarioLogueado'));
-    if (usuarioGuardado && usuarioGuardado.rol) {
-      // Normalizamos el rol guardado
-      const rolNormalizado = usuarioGuardado.rol.toLowerCase().includes('admin') ? 'admin' : 'colaborador';
-      setRolUsuario(rolNormalizado);
+    if (usuarioGuardado) {
+      if (usuarioGuardado.rol) {
+        const rolNormalizado = usuarioGuardado.rol.toLowerCase().includes('admin') ? 'admin' : 'colaborador';
+        setRolUsuario(rolNormalizado);
+      }
+      
+      // PRIORIDAD DE FOTO:
+      // 1. foto_perfil_url (Ruta completa del servidor de Julio)
+      // 2. foto (Respaldo si se guardó el string en el login)
+      // 3. FOTO_DEFAULT (Si no hay nada en la BD)
+      const urlFoto = usuarioGuardado.foto_perfil_url || 
+                      usuarioGuardado.foto || 
+                      FOTO_DEFAULT;
+      
+      setFotoUsuario(urlFoto);
     }
+    setCargandoSesion(false);
   }, []);
 
   const manejarLoginExitoso = (rolRecibido) => {
-    const rolNormalizado = rolRecibido?.toLowerCase().includes('admin') ? 'admin' : 'colaborador';
+    // Al entrar, leemos de nuevo el storage para capturar la URL real
+    const usuarioGuardado = JSON.parse(localStorage.getItem('usuarioLogueado'));
     
+    const rolNormalizado = rolRecibido?.toLowerCase().includes('admin') ? 'admin' : 'colaborador';
     setRolUsuario(rolNormalizado);
+    
+    // Sincronizamos la foto inmediatamente con la data fresca del login
+    const nuevaFoto = usuarioGuardado?.foto_perfil_url || 
+                      usuarioGuardado?.foto || 
+                      FOTO_DEFAULT;
+    
+    setFotoUsuario(nuevaFoto);
     setMostrarLogin(false);
     
     if (queriaPublicar) {
@@ -56,6 +83,7 @@ function AppContent() {
     } finally {
       localStorage.removeItem('usuarioLogueado');
       setRolUsuario(null);
+      setFotoUsuario(null); 
       navigate("/"); 
     }
   };
@@ -69,12 +97,18 @@ function AppContent() {
     }
   };
 
+  if (cargandoSesion) return null;
+
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 text-left">
       <Navbar 
+        // El key fuerza a React a recrear el Navbar cuando la foto cambia, 
+        // evitando que se quede "pegada" la imagen vieja en el caché del componente.
+        key={fotoUsuario} 
         alClickIngresar={() => { setQueriaPublicar(false); setMostrarLogin(true); }} 
         isLogged={!!rolUsuario} 
         rol={rolUsuario} 
+        foto={fotoUsuario} 
         alCerrarSesion={manejarCerrarSesion}
         alClickPublicar={intentarPublicar} 
       />
@@ -94,9 +128,20 @@ function AppContent() {
           
           <Route 
             path="/publicar" 
-            element={rolUsuario ? <FormularioPublicar /> : <Navigate to="/" replace />} 
+            element={rolUsuario === 'colaborador' ? <FormularioPublicar /> : <Navigate to="/" replace />} 
           />
           
+          <Route 
+            path="/mis-propuestas" 
+            element={rolUsuario === 'colaborador' ? <MisPropuestas /> : <Navigate to="/" replace />} 
+          />
+
+          {/* Pasamos foto como prop para que PerfilUsuario no tenga que buscarla en el storage otra vez */}
+          <Route 
+            path="/perfil" 
+            element={rolUsuario ? <PerfilUsuario foto={fotoUsuario} /> : <Navigate to="/" replace />} 
+          />
+
           <Route 
             path="/dashboard" 
             element={rolUsuario === 'admin' ? <AdminDashboard /> : <Navigate to="/" replace />} 
