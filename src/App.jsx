@@ -22,43 +22,44 @@ function AppContent() {
   const [queriaPublicar, setQueriaPublicar] = useState(false);
   const [cargandoSesion, setCargandoSesion] = useState(true);
 
-  // URL por defecto definida por Julio para el sistema
-  const FOTO_DEFAULT = "http://100.123.6.123:8000/storage/usuarios/perfil.png";
+  // Función para armar la URL de la foto
+  const construirUrlFoto = (usuario) => {
+    if (!usuario) return null;
+    // Si Julio manda la URL completa algún día, la usamos.
+    if (usuario.foto_perfil_url) return usuario.foto_perfil_url;
+    // Si manda el nombre del archivo, le pegamos la ruta del storage
+    if (usuario.foto_perfil) {
+      return `http://100.123.6.123:8000/storage/usuarios/${usuario.foto_perfil}`;
+    }
+    // Si no hay nada, mandamos la silueta por defecto desde el servidor
+    return "http://100.123.6.123:8000/storage/usuarios/perfil.png";
+  };
 
+  // Recuperar sesión al cargar la App
   useEffect(() => {
     const usuarioGuardado = JSON.parse(localStorage.getItem('usuarioLogueado'));
     if (usuarioGuardado) {
+      // 1. Normalización de Rol
       if (usuarioGuardado.rol) {
         const rolNormalizado = usuarioGuardado.rol.toLowerCase().includes('admin') ? 'admin' : 'colaborador';
         setRolUsuario(rolNormalizado);
       }
       
-      // PRIORIDAD DE FOTO:
-      // 1. foto_perfil_url (Ruta completa del servidor de Julio)
-      // 2. foto (Respaldo si se guardó el string en el login)
-      // 3. FOTO_DEFAULT (Si no hay nada en la BD)
-      const urlFoto = usuarioGuardado.foto_perfil_url || 
-                      usuarioGuardado.foto || 
-                      FOTO_DEFAULT;
-      
-      setFotoUsuario(urlFoto);
+      // 2. Construcción de la foto
+      setFotoUsuario(construirUrlFoto(usuarioGuardado));
     }
     setCargandoSesion(false);
   }, []);
 
   const manejarLoginExitoso = (rolRecibido) => {
-    // Al entrar, leemos de nuevo el storage para capturar la URL real
     const usuarioGuardado = JSON.parse(localStorage.getItem('usuarioLogueado'));
     
     const rolNormalizado = rolRecibido?.toLowerCase().includes('admin') ? 'admin' : 'colaborador';
     setRolUsuario(rolNormalizado);
     
-    // Sincronizamos la foto inmediatamente con la data fresca del login
-    const nuevaFoto = usuarioGuardado?.foto_perfil_url || 
-                      usuarioGuardado?.foto || 
-                      FOTO_DEFAULT;
+    // Sincronizamos la foto armando la URL manualmente
+    setFotoUsuario(construirUrlFoto(usuarioGuardado));
     
-    setFotoUsuario(nuevaFoto);
     setMostrarLogin(false);
     
     if (queriaPublicar) {
@@ -102,8 +103,6 @@ function AppContent() {
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 text-left">
       <Navbar 
-        // El key fuerza a React a recrear el Navbar cuando la foto cambia, 
-        // evitando que se quede "pegada" la imagen vieja en el caché del componente.
         key={fotoUsuario} 
         alClickIngresar={() => { setQueriaPublicar(false); setMostrarLogin(true); }} 
         isLogged={!!rolUsuario} 
@@ -136,7 +135,6 @@ function AppContent() {
             element={rolUsuario === 'colaborador' ? <MisPropuestas /> : <Navigate to="/" replace />} 
           />
 
-          {/* Pasamos foto como prop para que PerfilUsuario no tenga que buscarla en el storage otra vez */}
           <Route 
             path="/perfil" 
             element={rolUsuario ? <PerfilUsuario foto={fotoUsuario} /> : <Navigate to="/" replace />} 

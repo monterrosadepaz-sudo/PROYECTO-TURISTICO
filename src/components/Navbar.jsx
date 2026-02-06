@@ -3,27 +3,14 @@ import { useNavigate } from "react-router-dom";
 export default function Navbar({ alClickIngresar, isLogged, rol, alCerrarSesion, alClickPublicar, foto }) { 
   const navigate = useNavigate();
 
-  // Mantenemos esto para el nombre, pero la foto ahora viene de props
+  // Obtenemos datos básicos para el nombre del storage
   const datosUsuario = JSON.parse(localStorage.getItem('usuarioLogueado')) || {};
   const nombreBienvenida = datosUsuario.nombre || "";
   
-  const FOTO_DEFECTO = "http://100.123.6.123:8000/storage/usuarios/perfil.png";
-
   const obtenerRutaAvatar = () => {
-    // 1. Prioridad Máxima: La prop 'foto' que viene de App.jsx (ya procesada)
-    if (foto) return foto;
-
-    // 2. Prioridad Servidor: La propiedad exacta que vimos en tu captura de Thunder Client
-    if (datosUsuario.foto_perfil_url) return datosUsuario.foto_perfil_url;
-
-    // 3. Respaldo: Si solo tenemos el nombre del archivo
-    if (datosUsuario.foto) {
-        if (datosUsuario.foto.startsWith('http')) return datosUsuario.foto;
-        return `http://100.123.6.123:8000/storage/usuarios/${datosUsuario.foto}`;
-    }
-
-    // 4. Final: Foto por defecto
-    return FOTO_DEFECTO;
+    // CONFIANZA TOTAL: Solo usamos lo que viene por props o storage.
+    // Eliminamos la constante FOTO_RESPALDO_TECNICO para no intervenir.
+    return foto || datosUsuario.foto_perfil_url || datosUsuario.foto;
   };
 
   return (
@@ -59,7 +46,7 @@ export default function Navbar({ alClickIngresar, isLogged, rol, alCerrarSesion,
                 </button>
               </div>
               
-              {/* Foto de perfil circular */}
+              {/* Círculo de foto dinámico - Dependencia absoluta del servidor */}
               <div 
                 onClick={() => navigate("/perfil")}
                 className="w-10 h-10 rounded-full border-2 border-blue-400 overflow-hidden cursor-pointer hover:border-white hover:scale-110 transition-all bg-slate-200 shadow-lg"
@@ -68,16 +55,13 @@ export default function Navbar({ alClickIngresar, isLogged, rol, alCerrarSesion,
                   src={obtenerRutaAvatar()} 
                   className="w-full h-full object-cover" 
                   alt="Avatar"
-                  onError={(e) => {
-                    // Si la imagen bautizada da error 404, ponemos la de respaldo
-                    e.target.src = FOTO_DEFECTO;
-                  }} 
+                  // Hemos quitado el onError para dejar de "parchar" el error de Julio
                 />
               </div>
             </div>
           )}
 
-          {/* Botones de navegación según Rol */}
+          {/* Botones de navegación (Propuestas / Dashboard) */}
           {isLogged && rol === 'colaborador' && (
             <button onClick={() => navigate("/mis-propuestas")} className="text-[10px] font-black uppercase tracking-widest text-blue-200 hover:text-white transition-colors mr-2">
               Mis Propuestas

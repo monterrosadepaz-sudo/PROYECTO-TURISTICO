@@ -95,7 +95,7 @@ export default function Login({ alEntrar, alCerrar }) {
           throw new Error(errorMsg);
         }
 
-        setMensajeServidor({ texto: "CUENTA CREADA EXITOSAMENTE COMO COLABORADOR.", tipo: 'exito' });
+        setMensajeServidor({ texto: "CUENTA CREADA EXITOSAMENTE.", tipo: 'exito' });
         setTimeout(() => setVista('login'), 3000);
 
       } else {
@@ -115,21 +115,18 @@ export default function Login({ alEntrar, alCerrar }) {
         const resultado = await respuesta.json();
         if (!respuesta.ok) throw new Error(resultado.message || "Error en el ingreso");
 
-        const usuario = resultado.usuario || resultado;
+        const usuarioData = resultado.usuario || resultado;
         
-        // --- LA CORRECCIÓN MAESTRA ---
-        // Guardamos explícitamente la propiedad que confirmamos en Thunder Client
+        // --- ACTUALIZACIÓN DE LÓGICA DE GUARDADO ---
+        // Guardamos el objeto tal cual lo manda Julio
         localStorage.setItem('usuarioLogueado', JSON.stringify({
-          idusuario: usuario.idusuario,
-          nombre: usuario.nombre, 
-          rol: usuario.rol,       
-          correo: usuario.email || usuario.correo,
-          // Aquí está la clave: pasamos la URL completa que ya nos da Julio
-          foto: usuario.foto_perfil_url,
-          foto_perfil_url: usuario.foto_perfil_url 
+          ...usuarioData,
+          // Mantenemos la estructura para que App.jsx pueda construir la URL dinámica
+          foto_perfil: usuarioData.foto_perfil,
+          foto_perfil_url: usuarioData.foto_perfil_url 
         }));
 
-        alEntrar(usuario.rol); 
+        alEntrar(usuarioData.rol); 
       }
     } catch (error) {
       setMensajeServidor({ texto: error.message || "Error de conexión", tipo: 'error' });
@@ -140,8 +137,7 @@ export default function Login({ alEntrar, alCerrar }) {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-      {/* Tu JSX se mantiene intacto ya que el diseño es impecable */}
-      <div className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden border border-slate-100 transition-all text-left italic">
+      <div className="bg-white w-full max-md rounded-[3rem] shadow-2xl overflow-hidden border border-slate-100 transition-all text-left italic">
         <div className="bg-blue-800 p-10 text-white text-center relative">
           <button onClick={alCerrar} className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors">✕</button>
           <h2 className="text-3xl font-black uppercase tracking-tighter italic text-center">
@@ -177,7 +173,7 @@ export default function Login({ alEntrar, alCerrar }) {
 
               <div className="space-y-1">
                 <label className="text-[9px] font-black uppercase text-slate-400 ml-2 tracking-widest block italic">Nombre de Usuario</label>
-                <input type="text" name="usuario" required onChange={manejarCambio} className="w-full px-5 py-3 rounded-xl bg-slate-50 border border-slate-100 outline-none text-slate-700 font-bold italic text-sm" placeholder="Julio Monterrosa" />
+                <input type="text" name="usuario" required onChange={manejarCambio} className="w-full px-5 py-3 rounded-xl bg-slate-50 border border-slate-100 outline-none text-slate-700 font-bold italic text-sm" placeholder="Usuario" />
               </div>
 
               <div className="space-y-1">
@@ -205,22 +201,18 @@ export default function Login({ alEntrar, alCerrar }) {
                 <button type="button" onClick={() => setVista(vista === 'login' ? 'registro' : 'login')} className="text-blue-600 text-[10px] font-black uppercase hover:underline italic block w-full underline decoration-2 underline-offset-4">
                   {vista === 'login' ? 'CREAR NUEVA CUENTA' : 'VOLVER AL INGRESO'}
                 </button>
-                {vista === 'login' && (
-                  <button type="button" onClick={() => setVista('recuperar')} className="text-slate-400 text-[9px] font-black uppercase mt-2">¿PROBLEMAS CON SU CONTRASEÑA?</button>
-                )}
               </div>
             </form>
           ) : (
             <form onSubmit={manejarRecuperacion} className="space-y-6">
-              <p className="text-slate-500 text-[11px] font-medium leading-relaxed italic uppercase tracking-tighter">Ingrese su nombre de usuario para iniciar el proceso de recuperación.</p>
               <div className="space-y-1">
                 <label className="text-[9px] font-black uppercase text-slate-400 ml-2 tracking-widest block italic">Nombre de Usuario</label>
-                <input type="text" name="usuarioRecuperar" required onChange={manejarCambio} className="w-full px-5 py-3 rounded-xl bg-slate-50 border border-slate-100 outline-none text-slate-700 font-bold italic text-sm" placeholder="Julio Monterrosa" />
+                <input type="text" name="usuarioRecuperar" required onChange={manejarCambio} className="w-full px-5 py-3 rounded-xl bg-slate-50 border border-slate-100 outline-none text-slate-700 font-bold italic text-sm" placeholder="Usuario" />
               </div>
               <button type="submit" disabled={cargando} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-xl shadow-lg text-[10px] uppercase tracking-[0.2em]">
                 {cargando ? 'ENVIANDO...' : 'ENVIAR SOLICITUD'}
               </button>
-              <button type="button" onClick={() => setVista('login')} className="w-full text-slate-400 text-[9px] font-black uppercase mt-4">VOLVER AL INICIO</button>
+              <button type="button" onClick={() => setVista('login')} className="w-full text-slate-400 text-[9px] font-black uppercase mt-4 underline">VOLVER AL INICIO</button>
             </form>
           )}
         </div>
