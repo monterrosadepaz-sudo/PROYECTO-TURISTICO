@@ -1,3 +1,5 @@
+
+
 DROP TABLE IF EXISTS Usuarios CASCADE;
 DROP TABLE IF EXISTS Categorias CASCADE;
 DROP TABLE IF EXISTS Plantillas CASCADE;
@@ -498,6 +500,39 @@ VALUES (p_idDistrito, p_nombre, p_idMunicipio, p_codigo);
 END;
 $$;
 
+-- Creación sitio turistico
+CREATE PROCEDURE crear_lugar_turistico(
+    p_nombre VARCHAR,
+    p_departamento VARCHAR,
+    p_latitud DECIMAL,
+    p_longitud DECIMAL,
+    p_clasificacion TEXT[],
+    p_politicas JSONB,
+    p_horarios JSONB,
+    p_costo NUMERIC
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    INSERT INTO lugares_turisticos (
+        idlugar, nombre, departamento, latitud, longitud,
+        clasificacion, politicas, horarios, costo_entrada, fecha_registro
+    )
+    VALUES (
+        gen_random_uuid(),
+        p_nombre,
+        p_departamento,
+        p_latitud,
+        p_longitud,
+        p_clasificacion,
+        p_politicas,
+        p_horarios,
+        p_costo,
+        NOW()
+    );
+END;
+$$;
+
 
 /*
 insertar_respuesta
@@ -512,5 +547,41 @@ insertar_distrito
 insertar_administrador
 insertar_usuario
 */
+
+--jsonb
+
+INSERT INTO lugares_turisticos (
+    idlugar, nombre, departamento, latitud, longitud, clasificacion, politicas, horarios, costo_entrada, fecha_registro
+)
+VALUES (
+    gen_random_uuid(),
+    'Julio Monterrosa',
+    'La Paz',
+    13.5075,
+    -88.8728,
+    ARRAY['playa','pueblo'],
+    '{
+      "traer_comida": true,
+      "gaseosas_agua": true,
+      "alcohol": false,
+      "mascotas": true,
+      "mesas_sillas": false,
+      "hamacas": true,
+      "parrillas_cocinas": true,
+      "armas_de_fuego": false
+    }'::jsonb,
+    '{
+      "lunes": "cerrado",
+      "martes": "cerrado",
+      "miércoles": "cerrado",
+      "jueves": "cerrado",
+      "viernes": "cerrado",
+      "sábado": "abierto",
+      "domingo": "abierto"
+    }'::jsonb,
+    2.50,
+    NOW()
+);
+
 
 
