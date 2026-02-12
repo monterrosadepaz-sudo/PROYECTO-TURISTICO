@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import Home from "./pages/Home";
 import VistaDepartamento from "./components/VistaDepartamento";
 import FormularioPublicar from "./components/FormularioPublicar";
+import FormularioEditar from "./components/FormularioEditar"; 
 import DetalleDestino from "./components/DetalleDestino";
 import Navbar from "./components/Navbar";
 import Login from "./components/Login"; 
@@ -13,6 +14,9 @@ import RestablecerClave from "./components/RestablecerClave";
 import MisPropuestas from "./components/MisPropuestas"; 
 import PerfilUsuario from "./components/PerfilUsuario"; 
 
+// --- NUEVO IMPORT DE LA VISTA DEL ADMIN ---
+import AdminDetalleSitio from "./components/AdminDetalleSitio";
+
 function AppContent() {
   const navigate = useNavigate();
   const [sitioSeleccionado, setSitioSeleccionado] = useState(null);
@@ -22,30 +26,24 @@ function AppContent() {
   const [queriaPublicar, setQueriaPublicar] = useState(false);
   const [cargandoSesion, setCargandoSesion] = useState(true);
 
-  // Función para armar la URL de la foto
+  const API_BASE_URL = "http://100.123.6.123:8000"; 
+
   const construirUrlFoto = (usuario) => {
     if (!usuario) return null;
-    // Si Julio manda la URL completa algún día, la usamos.
     if (usuario.foto_perfil_url) return usuario.foto_perfil_url;
-    // Si manda el nombre del archivo, le pegamos la ruta del storage
     if (usuario.foto_perfil) {
-      return `http://100.123.6.123:8000/storage/usuarios/${usuario.foto_perfil}`;
+      return `${API_BASE_URL}/storage/usuarios/${usuario.foto_perfil}`;
     }
-    // Si no hay nada, mandamos la silueta por defecto desde el servidor
-    return "http://100.123.6.123:8000/storage/usuarios/perfil.png";
+    return `${API_BASE_URL}/storage/usuarios/perfil.png`;
   };
 
-  // Recuperar sesión al cargar la App
   useEffect(() => {
     const usuarioGuardado = JSON.parse(localStorage.getItem('usuarioLogueado'));
     if (usuarioGuardado) {
-      // 1. Normalización de Rol
       if (usuarioGuardado.rol) {
         const rolNormalizado = usuarioGuardado.rol.toLowerCase().includes('admin') ? 'admin' : 'colaborador';
         setRolUsuario(rolNormalizado);
       }
-      
-      // 2. Construcción de la foto
       setFotoUsuario(construirUrlFoto(usuarioGuardado));
     }
     setCargandoSesion(false);
@@ -53,13 +51,9 @@ function AppContent() {
 
   const manejarLoginExitoso = (rolRecibido) => {
     const usuarioGuardado = JSON.parse(localStorage.getItem('usuarioLogueado'));
-    
     const rolNormalizado = rolRecibido?.toLowerCase().includes('admin') ? 'admin' : 'colaborador';
     setRolUsuario(rolNormalizado);
-    
-    // Sincronizamos la foto armando la URL manualmente
     setFotoUsuario(construirUrlFoto(usuarioGuardado));
-    
     setMostrarLogin(false);
     
     if (queriaPublicar) {
@@ -74,7 +68,7 @@ function AppContent() {
 
   const manejarCerrarSesion = async () => {
     try {
-      await fetch('http://100.123.6.123:8000/api/logout', { 
+      await fetch(`${API_BASE_URL}/api/logout`, { 
         method: 'POST',
         headers: { 'Accept': 'application/json' },
         credentials: 'include' 
@@ -123,11 +117,17 @@ function AppContent() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/departamento/:nombreDepto" element={<VistaDepartamento onSeleccionarSitio={setSitioSeleccionado} />} />
-          <Route path="/destino" element={<DetalleDestino sitio={sitioSeleccionado} />} />
+          
+          <Route path="/destino" element={sitioSeleccionado ? <DetalleDestino sitio={sitioSeleccionado} /> : <Navigate to="/" replace />} />
           
           <Route 
             path="/publicar" 
             element={rolUsuario === 'colaborador' ? <FormularioPublicar /> : <Navigate to="/" replace />} 
+          />
+
+          <Route 
+            path="/editar/:id" 
+            element={rolUsuario === 'colaborador' ? <FormularioEditar /> : <Navigate to="/" replace />} 
           />
           
           <Route 
@@ -145,8 +145,14 @@ function AppContent() {
             element={rolUsuario === 'admin' ? <AdminDashboard /> : <Navigate to="/" replace />} 
           />
 
+          {/* --- NUEVA RUTA: VISTA DE DETALLE DEL ADMIN --- */}
           <Route 
-            path="/dashboard/analizar" 
+            path="/admin/sitio/:id" 
+            element={rolUsuario === 'admin' ? <AdminDetalleSitio /> : <Navigate to="/" replace />} 
+          />
+
+          <Route 
+            path="/dashboard/analizar/:id" 
             element={rolUsuario === 'admin' ? <AnalisisDestino /> : <Navigate to="/" replace />} 
           />
 
