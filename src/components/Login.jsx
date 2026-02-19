@@ -15,14 +15,27 @@ export default function Login({ alEntrar, alCerrar }) {
   const [mensajeServidor, setMensajeServidor] = useState({ texto: '', tipo: '' });
   const [cargando, setCargando] = useState(false);
 
-  const generarNombreImagen = (archivo, objetivo, carpeta) => {
-    const hoy = new Date();
-    const dia = String(hoy.getDate()).padStart(2, '0');
-    const mes = String(hoy.getMonth() + 1).padStart(2, '0');
-    const anio = hoy.getFullYear();
-    const fechaCodificada = `${dia}${mes}${anio}`; 
-    const extension = archivo.name.split('.').pop();
-    return `0000${fechaCodificada}${objetivo}usuarios.${extension}`;
+  // --- NUEVA LÓGICA: GENERADOR DE UUID Y NOMBRE VÁLIDO PARA JULIO ---
+  const generarUUID = () => {
+    // Genera un UUID v4 falso pero válido para la Regex de Julio
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  };
+
+  const generarNombreImagen = (archivo) => {
+    // 1. UUID de 36 caracteres
+    const fakeUUID = generarUUID();
+    
+    // 2. Aleatorio de 10 caracteres
+    const aleatorio = Math.random().toString(36).substring(2, 12).replace(/[^a-z0-9]/g, '');
+    
+    // 3. Extensión original
+    const extension = archivo.name.split('.').pop().toLowerCase();
+    
+    // 4. Formato exacto requerido por el backend
+    return `0000${fakeUUID}perfil-${aleatorio}.${extension}`;
   };
 
   const manejarCambio = (e) => {
@@ -78,9 +91,10 @@ export default function Login({ alEntrar, alCerrar }) {
         formData.append('password_confirmation', datos.confirmarClave);
         formData.append('rol', "Colaborador");
 
+        // --- APLICACIÓN DEL NUEVO NOMBRE DE FOTO ---
         if (fotoPerfil) {
-          const nombreCodificado = generarNombreImagen(fotoPerfil, "perfil", "usuarios");
-          formData.append('foto_perfil', fotoPerfil, nombreCodificado);
+          const nombreAprobado = generarNombreImagen(fotoPerfil);
+          formData.append('foto_perfil', fotoPerfil, nombreAprobado);
         }
 
         const respuesta = await fetch('http://100.123.6.123:8000/api/usuarios', {

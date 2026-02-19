@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-export default function PerfilUsuario({ foto }) { 
+export default function PerfilUsuario() { 
   const navigate = useNavigate();
   
   const [sesionActiva, setSesionActiva] = useState(
@@ -12,9 +12,8 @@ export default function PerfilUsuario({ foto }) {
   const [archivoFoto, setArchivoFoto] = useState(null);
   const [cargando, setCargando] = useState(false);
   
-  // CONTROL DE EDICIÓN Y MENSAJES
   const [editando, setEditando] = useState(false);
-  const [seccionAEditar, setSeccionAEditar] = useState(null); // 'nombre', 'username', 'password', 'correo'
+  const [seccionAEditar, setSeccionAEditar] = useState(null); 
   const [exito, setExito] = useState(false);
 
   const [datosPerfil, setDatosPerfil] = useState({
@@ -24,6 +23,10 @@ export default function PerfilUsuario({ foto }) {
     password: '',
     confirmPassword: ''
   });
+
+  const fotoActualUrl = sesionActiva.foto_perfil 
+    ? (sesionActiva.foto_perfil.startsWith('http') ? sesionActiva.foto_perfil : `http://100.123.6.123:8000/storage/usuarios/${sesionActiva.foto_perfil}`)
+    : "http://100.123.6.123:8000/storage/usuarios/perfil.png";
 
   const manejarCambioTexto = (e) => {
     setDatosPerfil({ ...datosPerfil, [e.target.name]: e.target.value });
@@ -37,48 +40,87 @@ export default function PerfilUsuario({ foto }) {
     }
   };
 
+  // --- GENERADOR DE NOMBRE EXACTO (SEGÚN REGEX DE JULIO) ---
+  const generarNombreFotoPerfil = (file, uuidUsuario) => {
+    // 1. Aleatorio de 10 caracteres (letras y números)
+    const aleatorio = Math.random().toString(36).substring(2, 12).replace(/[^a-z0-9]/g, '');
+    
+    // 2. Extensión original
+    const extension = file.name.split('.').pop().toLowerCase();
+
+    // 3. FORMATO REQUERIDO POR EL BACKEND:
+    // Regex: 0000 + UUID(36 chars) + perfil- + ALEATORIO(10 chars) + .EXT
+    return `0000${uuidUsuario}perfil-${aleatorio}.${extension}`;
+  };
+
   const guardarCambios = async (e) => {
-    e.preventDefault();
-    if (seccionAEditar === 'password' && datosPerfil.password !== datosPerfil.confirmPassword) {
+    if (e) e.preventDefault();
+    
+    if (datosPerfil.password && datosPerfil.password !== datosPerfil.confirmPassword) {
       return alert("Las contraseñas no coinciden.");
     }
 
     setCargando(true);
     const data = new FormData();
-    if (archivoFoto) data.append('foto_perfil', archivoFoto);
+    
+    // MÉTODO PUT FAKEADO PARA LARAVEL
     data.append('_method', 'PUT'); 
-    data.append('nombre', datosPerfil.nombre);
-    data.append('username', datosPerfil.username);
-    data.append('email', datosPerfil.email);
-    if (datosPerfil.password) data.append('password', datosPerfil.password);
+    
+    // Datos de texto
+    data.append('nombre', datosPerfil.nombre || sesionActiva.nombre || '');
+    data.append('username', datosPerfil.username || sesionActiva.username || 'usuario_sv');
+    data.append('email', datosPerfil.email || sesionActiva.email || '');
+
+    // ARCHIVO CON NOMBRE CORREGIDO
+    if (archivoFoto) {
+        // Pasamos el ID del usuario para construir el nombre
+        const nombreFinal = generarNombreFotoPerfil(archivoFoto, sesionActiva.idusuario);
+        console.log("Enviando foto con nombre VALIDO:", nombreFinal);
+        
+        data.append('foto_perfil', archivoFoto, nombreFinal);
+    }
+
+    if (datosPerfil.password) {
+        data.append('password', datosPerfil.password);
+    }
 
     try {
-      const respuesta = await fetch(`http://100.123.6.123:8000/api/usuarios/${sesionActiva.idusuario}`, {
+      // URL DIRECTA AL CONTROLADOR UPDATE
+      const url = `http://100.123.6.123:8000/api/usuarios/${sesionActiva.idusuario}`;
+      
+      const respuesta = await fetch(url, {
         method: 'POST', 
         body: data,
         headers: { 'Accept': 'application/json' }
       });
 
+      const resultado = await respuesta.json();
+
       if (respuesta.ok) {
-        const resultado = await respuesta.json();
         const sesionActualizada = { 
           ...sesionActiva, 
-          nombre: datosPerfil.nombre,
-          username: datosPerfil.username,
-          email: datosPerfil.email,
-          foto_perfil: resultado.usuario?.foto_perfil || sesionActiva.foto_perfil
+          nombre: datosPerfil.nombre || sesionActiva.nombre,
+          username: datosPerfil.username || sesionActiva.username,
+          email: datosPerfil.email || sesionActiva.email,
+          foto_perfil: resultado.usuario?.foto_perfil || resultado.foto_perfil || sesionActiva.foto_perfil
         };
 
         localStorage.setItem('usuarioLogueado', JSON.stringify(sesionActualizada));
         setExito(true);
+        
         setTimeout(() => {
           setExito(false);
           setEditando(false);
           setSeccionAEditar(null);
-          window.location.reload();
-        }, 2500);
+          setArchivoFoto(null); 
+          window.location.reload(); 
+        }, 2000);
+      } else {
+          console.error("Error Backend:", resultado);
+          alert(`Error: ${resultado.error || "Datos inválidos"}`);
       }
     } catch (error) {
+      console.error(error);
       alert("Error de conexión.");
     } finally {
       setCargando(false);
@@ -88,7 +130,6 @@ export default function PerfilUsuario({ foto }) {
   return (
     <div className="min-h-screen py-20 bg-slate-100/50 flex justify-center items-start italic font-sans relative">
       
-      {/* MENSAJE DE ÉXITO CON MEJOR DISEÑO */}
       {exito && (
         <div className="fixed inset-0 z-[5000] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-500">
           <div className="bg-white p-10 rounded-[3rem] shadow-2xl flex flex-col items-center gap-4 animate-in zoom-in duration-300">
@@ -96,7 +137,7 @@ export default function PerfilUsuario({ foto }) {
               <span className="text-white text-3xl font-black">✓</span>
             </div>
             <h2 className="text-2xl font-black uppercase italic tracking-tighter text-slate-800">¡Perfil Actualizado!</h2>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sincronizando datos...</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Información actualizada</p>
           </div>
         </div>
       )}
@@ -109,15 +150,28 @@ export default function PerfilUsuario({ foto }) {
 
         <div className="p-10 -mt-16">
           <div className="flex flex-col items-center space-y-6">
+            
             <div className="relative group z-10">
-              <div className="w-40 h-40 rounded-full border-[10px] border-white shadow-2xl overflow-hidden bg-white">
-                <img src={fotoPreview || (sesionActiva.foto_perfil ? `http://100.123.6.123:8000/storage/usuarios/${sesionActiva.foto_perfil}` : "http://100.123.6.123:8000/storage/usuarios/perfil.png")} className="w-full h-full object-cover" alt="Perfil" />
+              <div className="w-40 h-40 rounded-full border-[10px] border-white shadow-2xl overflow-hidden bg-slate-200 relative">
+                <img 
+                    src={fotoPreview || fotoActualUrl} 
+                    className="w-full h-full object-cover" 
+                    alt="Perfil" 
+                    onError={(e) => e.target.src = "http://100.123.6.123:8000/storage/usuarios/perfil.png"}
+                />
               </div>
-              <label className="absolute bottom-1 right-1 bg-blue-600 p-3.5 rounded-full shadow-lg cursor-pointer hover:bg-blue-700 border-4 border-white z-30 flex items-center justify-center">
-                <span className="text-white text-lg font-black">+</span>
+              
+              <label className="absolute bottom-1 right-1 bg-blue-600 w-12 h-12 rounded-full shadow-lg cursor-pointer hover:bg-blue-700 border-4 border-white transition-transform active:scale-95 flex items-center justify-center z-20">
+                <span className="text-white text-xl font-black leading-none mb-1">+</span>
                 <input type="file" className="hidden" accept="image/*" onChange={manejarArchivo} />
               </label>
             </div>
+
+            {archivoFoto && !exito && (
+                <button onClick={guardarCambios} disabled={cargando} className="bg-green-500 hover:bg-green-600 text-white font-black px-8 py-3 rounded-full text-xs uppercase tracking-widest shadow-xl animate-pulse transition-all hover:scale-105 active:scale-95">
+                    {cargando ? 'Subiendo...' : 'Guardar Cambios'}
+                </button>
+            )}
 
             <div className="w-full">
               {!editando ? (
@@ -127,9 +181,8 @@ export default function PerfilUsuario({ foto }) {
                     <p className="text-blue-600 font-bold text-sm underline underline-offset-4 tracking-tighter italic">{sesionActiva.email || "Sin correo"}</p>
                     <span className="inline-block bg-blue-50 px-6 py-2 rounded-full text-[10px] font-black text-blue-600 uppercase tracking-widest">{sesionActiva.rol || 'Colaborador'}</span>
                   </div>
-                  <button onClick={() => setEditando(true)} className="w-full bg-slate-100 hover:bg-slate-200 text-slate-500 font-black py-5 rounded-2xl transition-all text-[10px] uppercase tracking-[0.2em]">Editar Datos</button>
-                  {archivoFoto && (
-                    <button onClick={guardarCambios} className="w-full bg-blue-600 text-white font-black py-4 rounded-2xl text-[10px] uppercase tracking-widest animate-pulse">Guardar Nueva Foto</button>
+                  {!archivoFoto && (
+                    <button onClick={() => setEditando(true)} className="w-full bg-slate-100 hover:bg-slate-200 text-slate-500 font-black py-5 rounded-2xl transition-all text-[10px] uppercase tracking-[0.2em]">Editar Datos</button>
                   )}
                 </div>
               ) : (
@@ -138,11 +191,7 @@ export default function PerfilUsuario({ foto }) {
                     <div className="grid grid-cols-1 gap-3 animate-in fade-in slide-in-from-bottom-4">
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center mb-2 italic">¿Qué deseas modificar?</p>
                       {['nombre', 'username', 'correo', 'password'].map((item) => (
-                        <button 
-                          key={item} 
-                          onClick={() => setSeccionAEditar(item)}
-                          className="w-full py-4 px-6 bg-slate-50 hover:bg-blue-50 text-slate-700 font-black text-[11px] uppercase tracking-widest rounded-2xl border border-slate-100 text-left flex justify-between items-center group transition-all"
-                        >
+                        <button key={item} onClick={() => setSeccionAEditar(item)} className="w-full py-4 px-6 bg-slate-50 hover:bg-blue-50 text-slate-700 font-black text-[11px] uppercase tracking-widest rounded-2xl border border-slate-100 text-left flex justify-between items-center group transition-all">
                           {item === 'password' ? 'Contraseña' : item}
                           <span className="text-blue-300 group-hover:text-blue-600">→</span>
                         </button>
@@ -152,19 +201,13 @@ export default function PerfilUsuario({ foto }) {
                   ) : (
                     <form onSubmit={guardarCambios} className="space-y-4 animate-in fade-in zoom-in-95">
                       <div className="flex justify-between items-center mb-4">
-                         <button type="button" onClick={() => setSeccionAEditar(null)} className="text-[9px] font-black text-blue-600 uppercase">← Volver</button>
-                         <p className="text-[9px] font-black text-slate-400 uppercase italic">Editando {seccionAEditar}</p>
+                          <button type="button" onClick={() => setSeccionAEditar(null)} className="text-[9px] font-black text-blue-600 uppercase">← Volver</button>
+                          <p className="text-[9px] font-black text-slate-400 uppercase italic">Editando {seccionAEditar}</p>
                       </div>
 
-                      {seccionAEditar === 'nombre' && (
-                        <input name="nombre" value={datosPerfil.nombre} onChange={manejarCambioTexto} type="text" placeholder="Nuevo Nombre Completo" className="w-full px-6 py-4 rounded-2xl bg-slate-50 border-none text-sm font-bold italic outline-none focus:ring-2 focus:ring-blue-500/20" />
-                      )}
-                      {seccionAEditar === 'username' && (
-                        <input name="username" value={datosPerfil.username} onChange={manejarCambioTexto} type="text" placeholder="Nuevo Nombre de Usuario" className="w-full px-6 py-4 rounded-2xl bg-slate-50 border-none text-sm font-bold italic outline-none focus:ring-2 focus:ring-blue-500/20" />
-                      )}
-                      {seccionAEditar === 'correo' && (
-                        <input name="email" value={datosPerfil.email} onChange={manejarCambioTexto} type="email" placeholder="Nuevo Correo Electrónico" className="w-full px-6 py-4 rounded-2xl bg-slate-50 border-none text-sm font-bold italic outline-none focus:ring-2 focus:ring-blue-500/20" />
-                      )}
+                      {seccionAEditar === 'nombre' && <input name="nombre" value={datosPerfil.nombre} onChange={manejarCambioTexto} type="text" placeholder="Nuevo Usuario" className="w-full px-6 py-4 rounded-2xl bg-slate-50 border-none text-sm font-bold italic outline-none focus:ring-2 focus:ring-blue-500/20" />}
+                      {seccionAEditar === 'username' && <input name="username" value={datosPerfil.username} onChange={manejarCambioTexto} type="text" placeholder="Nuevo Nombre" className="w-full px-6 py-4 rounded-2xl bg-slate-50 border-none text-sm font-bold italic outline-none focus:ring-2 focus:ring-blue-500/20" />}
+                      {seccionAEditar === 'correo' && <input name="email" value={datosPerfil.email} onChange={manejarCambioTexto} type="email" placeholder="Nuevo Correo" className="w-full px-6 py-4 rounded-2xl bg-slate-50 border-none text-sm font-bold italic outline-none focus:ring-2 focus:ring-blue-500/20" />}
                       {seccionAEditar === 'password' && (
                         <>
                           <input name="password" onChange={manejarCambioTexto} type="password" placeholder="Nueva Contraseña" className="w-full px-6 py-4 rounded-2xl bg-slate-50 border-none text-sm font-bold italic outline-none focus:ring-2 focus:ring-blue-500/20 mb-3" />

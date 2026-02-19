@@ -1,15 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react'; 
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import MapaFormulario from './MapaFormulario';
 
-// Diccionario para que los títulos de precios se vean bonitos aunque vengan en mayúsculas
 const etiquetasPrecios = {
-    adultos: "Adultos",
-    ninos: "Niños",
-    terceraEdad: "Tercera Edad",
-    ADULTOS: "Adultos",
-    NINOS: "Niños",
-    TERCERAEDAD: "Tercera Edad"
+    adultos: "Adultos", ninos: "Niños", terceraEdad: "Tercera Edad",
+    ADULTOS: "Adultos", NINOS: "Niños", TERCERAEDAD: "Tercera Edad"
 };
 
 const diasSemana = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
@@ -17,10 +12,19 @@ const diasSemana = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado
 export default function AdminDetalleSitio() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const location = useLocation();
+  
+  // Datos de la solicitud original (si venimos del buzón)
+  const datosSolicitud = location.state?.datosSolicitud;
+  
+  // Sesión del Admin (Para firmar la respuesta)
+  const sesionAdmin = JSON.parse(localStorage.getItem('usuarioLogueado'));
+
+  const zonaGestionRef = useRef(null);
   const [sitio, setSitio] = useState(null);
   const [cargando, setCargando] = useState(true);
+  const [procesando, setProcesando] = useState(false);
 
-  // --- PARSEO SEGURO ---
   const safeParse = (data) => {
     if (!data || data === "null") return null;
     if (typeof data === 'object') return data;
@@ -35,50 +39,132 @@ export default function AdminDetalleSitio() {
     const cargarDetalleAdmin = async () => {
       try {
         const url = `http://100.123.6.123:8000/api/admin/publicaciones/${id}`;
-        
-        const respuesta = await fetch(url, {
-            method: 'GET',
-            headers: { 'Accept': 'application/json' }
-        });
+        const respuesta = await fetch(url, { method: 'GET', headers: { 'Accept': 'application/json' } });
 
         if (respuesta.ok) {
             const data = await respuesta.json();
-            
-            const detalles = safeParse(data.detalles) || {};
-            const politicas = safeParse(data.politicas) || {};
-            const horarios = safeParse(data.horarios) || {};
-            const clasificacion = safeParse(data.clasificacion) || ["TURISMO"];
-
             setSitio({
                 ...data,
-                detalles,
-                politicas,
-                horarios,
-                clasificacion,
-                precios: detalles.tarifas_desglosadas || { adultos: data.costo_entrada },
+                detalles: safeParse(data.detalles) || {},
+                politicas: safeParse(data.politicas) || {},
+                horarios: safeParse(data.horarios) || {},
+                clasificacion: safeParse(data.clasificacion) || ["TURISMO"],
+                precios: (safeParse(data.detalles) || {}).tarifas_desglosadas || { adultos: data.costo_entrada },
                 ubicacion: { lat: parseFloat(data.latitud), lng: parseFloat(data.longitud) }
             });
         } else {
-            alert("No se pudo cargar el sitio. Verifica que el endpoint de Admin exista.");
+            alert("No se pudo cargar el sitio.");
         }
-      } catch (error) {
-        console.error("Error:", error);
-      } finally {
-        setCargando(false);
-      }
+      } catch (error) { console.error("Error:", error); } finally { setCargando(false); }
     };
     cargarDetalleAdmin();
   }, [id]);
 
-  const manejarAccion = (accion) => {
-      if(accion === 'eliminar') {
-          if(window.confirm("⚠️ PELIGRO: ¿Estás seguro de ELIMINAR este sitio permanentemente?")) {
-              alert("Lógica de eliminación pendiente de conectar con Julio.");
+  const irAZonaGestion = () => {
+      zonaGestionRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  // --- NUEVA FUNCIÓN: NOTIFICAR AL USUARIO ---
+  const notificarUsuario = async (accionRealizada, mensajePersonalizado) => {
+      // Solo notificamos si hay una solicitud previa o si tenemos el ID del usuario a mano
+      // Usamos el ID del remitente de la solicitud, o el dueño del sitio si no hay solicitud
+      const destinatarioId = datosSolicitud?.remitente_id || sitio?.idusuario; 
+      
+      if (!destinatarioId || !sesionAdmin?.idusuario) return;
+
+      console.log(`🔔 Enviando notificación a ${destinatarioId}...`);
+
+      try {
+          const payload = {
+              "idpublicacion": id,
+              "remitente_id": sesionAdmin.idusuario, // El Admin responde
+              "destinatario_id": destinatarioId,     // El Colaborador recibe
+              "accion": "aprobar",                   // "aprobar" la solicitud de gestión
+              "comentarios": mensajePersonalizado,
+              // Si respondemos a un mensaje específico, enviamos su ID, si no, null
+              "respuesta_a": datosSolicitud?.idmensaje || null 
+          };
+
+          await fetch('http://100.123.6.123:8000/api/admin/solicitudes/responder', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+              body: JSON.stringify(payload)
+          });
+          
+          console.log("✅ Notificación enviada con éxito.");
+
+      } catch (error) {
+          console.error("⚠️ Error al notificar al usuario:", error);
+          // No mostramos alert aquí para no interrumpir el flujo principal, es un proceso de fondo
+      }
+  };
+
+  // --- LÓGICA DE ACTIVAR / DESACTIVAR ---
+  const alternarEstadoSitio = async () => {
+      if (!sitio) return;
+
+      const estaActivo = sitio.estado === 'activo';
+      const accionTexto = estaActivo ? "DESACTIVAR" : "ACTIVAR";
+      
+      const confirmado = window.confirm(`¿Estás seguro de que deseas ${accionTexto} este sitio?\n\n${estaActivo ? 'El usuario será notificado para que pueda editar.' : 'El sitio volverá a ser público.'}`);
+      
+      if (!confirmado) return;
+
+      setProcesando(true);
+
+      try {
+          const endpoint = estaActivo ? 'desactivar' : 'activar';
+          const url = `http://100.123.6.123:8000/api/admin/publicaciones/${endpoint}/${id}`;
+
+          const respuesta = await fetch(url, {
+              method: 'POST',
+              headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
+          });
+
+          if (respuesta.ok) {
+              // 1. Éxito en el cambio de estado
+              setSitio(prev => ({ ...prev, estado: estaActivo ? 'inactivo' : 'activo' }));
+              
+              // 2. Notificación Automática Inteligente
+              if (estaActivo) {
+                  // Se desactivó -> Mensaje de "Permiso Concedido"
+                  await notificarUsuario("Solicitud Atendida", "Tu sitio ha sido desactivado temporalmente. El modo edición está habilitado. Puedes realizar tus cambios ahora.");
+                  alert("Sitio DESACTIVADO. Se envió una notificación al usuario para que proceda a editar.");
+              } else {
+                  // Se activó -> Mensaje de "Todo listo"
+                  await notificarUsuario("Publicación Reactivada", "Tu sitio ha sido revisado y activado nuevamente. Ya es visible para los turistas.");
+                  alert("Sitio ACTIVADO. Se notificó al usuario.");
+              }
+
+          } else {
+              const err = await respuesta.json();
+              alert("Error del servidor: " + (err.message || "No se pudo cambiar el estado."));
           }
-      } else if (accion === 'desactivar') {
-          if(window.confirm("¿Deseas DESACTIVAR este sitio? Dejará de ser visible para los turistas.")) {
-              alert("Lógica de desactivación pendiente de conectar con Julio.");
-          }
+
+      } catch (error) {
+          console.error("Error de red:", error);
+          alert("Error de conexión.");
+      } finally {
+          setProcesando(false);
+      }
+  };
+
+  // --- LÓGICA DE ELIMINAR ---
+  const eliminarSitio = async () => {
+      if(window.confirm("⚠️ PELIGRO CRÍTICO ⚠️\n\n¿Estás seguro de ELIMINAR PERMANENTEMENTE este sitio?\nEsta acción es irreversible.")) {
+          // NOTA: Cuando tengas la ruta de DELETE de Julio, descomenta esto:
+          /*
+          try {
+             await fetch(`http://100.123.6.123:8000/api/admin/publicaciones/eliminar/${id}`, { method: 'DELETE' ... });
+             
+             // Notificar antes de irnos (si es posible)
+             await notificarUsuario("Sitio Eliminado", "Tu solicitud de baja ha sido procesada. El sitio ha sido eliminado permanentemente.");
+             
+             alert("Sitio eliminado.");
+             navigate('/dashboard');
+          } catch(e) { alert("Error"); }
+          */
+         alert("Falta endpoint DELETE. Pero la lógica de notificación está lista en el código.");
       }
   };
 
@@ -88,7 +174,35 @@ export default function AdminDetalleSitio() {
   return (
     <div className="min-h-screen bg-slate-50 italic font-sans pb-20">
       
-      {/* --- HERO SECTION (FOTO PORTADA) --- */}
+      {/* BANNER DE SOLICITUD */}
+      {datosSolicitud && (
+        <div className="bg-slate-900 text-white px-8 py-6 sticky top-0 z-[200] shadow-2xl animate-in slide-in-from-top duration-500">
+            <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div className="space-y-1">
+                    <div className="flex items-center gap-3">
+                        <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${datosSolicitud.accion === 'eliminar' ? 'bg-red-500' : 'bg-blue-500'}`}>
+                            SOLICITUD DE {datosSolicitud.accion}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">
+                            {datosSolicitud.fecha ? new Date(datosSolicitud.fecha).toLocaleDateString() : 'Reciente'}
+                        </span>
+                    </div>
+                    <p className="text-xl font-medium italic">"{datosSolicitud.comentarios}"</p>
+                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                        Solicitado por ID: <span className="font-mono text-slate-300">{datosSolicitud.remitente_id}</span>
+                    </p>
+                </div>
+                <div className="flex gap-3">
+                    <button onClick={() => navigate('/dashboard')} className="bg-white/10 hover:bg-white/20 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">Volver al Buzón</button>
+                    <button onClick={irAZonaGestion} className="bg-white text-slate-900 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:scale-105 transition-all">
+                        Atender Solicitud ↓
+                    </button>
+                </div>
+            </div>
+        </div>
+      )}
+
+      {/* HERO */}
       <div className="relative h-[50vh] w-full overflow-hidden bg-slate-900">
         <img 
             src={`http://100.123.6.123:8000/storage/preformularios/${sitio.imagen}`} 
@@ -97,51 +211,32 @@ export default function AdminDetalleSitio() {
             alt=""
         />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent"></div>
-        
-        {/* CORRECCIÓN 1: Botón Volver al panel (ahora usa la ruta correcta) */}
-       {/* CORRECCIÓN: Botón con z-[100] para evitar bloqueos y navigate(-1) para no perder el estado del panel */}
-        <button 
-            onClick={() => navigate(-1)} 
-            className="absolute top-8 left-8 z-[100] cursor-pointer bg-white/20 hover:bg-white/40 backdrop-blur-md text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg"
-        >
-            ← Volver al Panel
-        </button>
+        <button onClick={() => navigate(-1)} className="absolute top-8 left-8 z-[100] cursor-pointer bg-white/20 hover:bg-white/40 backdrop-blur-md text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg">← Volver</button>
         <div className="absolute bottom-0 left-0 w-full p-10 md:p-20 text-white">
             <span className="bg-blue-600 text-white px-4 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest mb-4 inline-block shadow-lg">
                 {Array.isArray(sitio.clasificacion) ? sitio.clasificacion[0] : sitio.clasificacion}
             </span>
             <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter mb-2 leading-none">{sitio.nombre}</h1>
-            
-            {/* CORRECCIÓN 2: Ubicación completa con Departamento, Municipio y Distrito */}
             <p className="text-sm md:text-xl font-bold text-slate-300 uppercase tracking-widest flex items-center gap-2">
                 📍 {sitio.departamento} | {sitio.municipio} | {sitio.distrito || 'S/D'}
             </p>
         </div>
       </div>
 
-      {/* --- CONTENIDO PRINCIPAL --- */}
+      {/* CONTENIDO PRINCIPAL */}
       <div className="max-w-6xl mx-auto px-6 -mt-10 relative z-10 grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* COLUMNA IZQUIERDA (INFO) */}
+        {/* IZQUIERDA */}
         <div className="lg:col-span-2 space-y-8">
-            
-            {/* Descripción */}
             <div className="bg-white p-10 rounded-[3rem] shadow-xl border border-slate-100">
                 <h3 className="text-blue-800 text-xs font-black uppercase tracking-[0.2em] mb-6">Sobre este destino</h3>
-                <p className="text-slate-600 text-sm leading-relaxed font-medium">
-                    {sitio.descripcion}
-                </p>
+                <p className="text-slate-600 text-sm leading-relaxed font-medium">{sitio.descripcion}</p>
             </div>
-
-            {/* Mapa */}
             <div className="bg-white p-4 rounded-[3rem] shadow-xl border border-slate-100 overflow-hidden h-96">
-                 {/* El pointer-events-none bloquea interacciones para que el buscador no se use en vista admin */}
                  <div className="w-full h-full rounded-[2.5rem] overflow-hidden opacity-90 pointer-events-none">
                     <MapaFormulario ubicacionActual={sitio.ubicacion} />
                  </div>
             </div>
-
-            {/* CORRECCIÓN 3: Cambio de Título en Políticas */}
             <div className="bg-white p-10 rounded-[3rem] shadow-xl border border-slate-100">
                 <h3 className="text-blue-800 text-xs font-black uppercase tracking-[0.2em] mb-6">Políticas de Entrada</h3>
                 <div className="grid grid-cols-2 gap-4">
@@ -157,75 +252,59 @@ export default function AdminDetalleSitio() {
             </div>
         </div>
 
-        {/* COLUMNA DERECHA (SIDEBAR ADMIN) */}
+        {/* DERECHA (SIDEBAR) */}
         <div className="space-y-6">
             
-            {/* Tarjeta de Estado Admin */}
-            <div className="bg-slate-800 text-white p-8 rounded-[3rem] shadow-2xl relative overflow-hidden">
+            <div className={`text-white p-8 rounded-[3rem] shadow-2xl relative overflow-hidden transition-colors duration-500 ${sitio.estado === 'activo' ? 'bg-green-600' : 'bg-red-500'}`}>
                 <div className="absolute top-0 right-0 p-8 opacity-10 text-9xl">🛡️</div>
-                <h3 className="text-xs font-black uppercase tracking-[0.2em] mb-2 text-slate-400">Estado Actual</h3>
-                <p className="text-4xl font-black uppercase tracking-tighter text-green-400 mb-6">{sitio.estado}</p>
-                
+                <h3 className="text-xs font-black uppercase tracking-[0.2em] mb-2 text-white/60">Estado Actual</h3>
+                <p className="text-4xl font-black uppercase tracking-tighter text-white mb-6">{sitio.estado}</p>
                 <div className="space-y-4">
                     <div className="bg-white/10 p-4 rounded-2xl">
-                        <p className="text-[8px] text-slate-400 uppercase font-black">ID Publicación</p>
+                        <p className="text-[8px] text-white/60 uppercase font-black">ID Publicación</p>
                         <p className="text-[9px] font-mono break-all text-white">{sitio.idpublicacion}</p>
-                    </div>
-                    <div className="bg-white/10 p-4 rounded-2xl">
-                        <p className="text-[8px] text-slate-400 uppercase font-black">Aprobado Por</p>
-                        <p className="text-[9px] font-mono break-all text-white">{sitio.aprobado_por}</p>
                     </div>
                 </div>
             </div>
 
-            {/* CORRECCIÓN 4: Agregada la sección de Horarios */}
             <div className="bg-white p-8 rounded-[3rem] shadow-xl border border-slate-100">
-                <h3 className="text-blue-800 text-xs font-black uppercase tracking-[0.2em] mb-6">Horarios de Atención</h3>
+                <h3 className="text-blue-800 text-xs font-black uppercase tracking-[0.2em] mb-6">Horarios</h3>
                 <div className="space-y-3">
                     {diasSemana.map((dia) => {
                         const valorHorario = sitio.horarios[dia];
                         const mostrarTexto = valorHorario ? valorHorario : 'Cerrado';
                         const estaAbierto = !!valorHorario;
-
                         return (
                             <div key={dia} className="flex justify-between items-center border-b border-slate-50 pb-2">
                                 <span className="text-[10px] font-black uppercase text-slate-400">{dia}</span>
-                                <span className={`text-xs font-bold uppercase tracking-widest ${estaAbierto ? 'text-slate-700' : 'text-slate-300'}`}>
-                                    {mostrarTexto}
-                                </span>
+                                <span className={`text-xs font-bold uppercase tracking-widest ${estaAbierto ? 'text-slate-700' : 'text-slate-300'}`}>{mostrarTexto}</span>
                             </div>
                         );
                     })}
                 </div>
             </div>
 
-            {/* Precios con etiquetas amigables */}
-            <div className="bg-white p-8 rounded-[3rem] shadow-xl border border-slate-100">
-                <h3 className="text-blue-800 text-xs font-black uppercase tracking-[0.2em] mb-6">Tarifas</h3>
+            {/* ZONA DE GESTIÓN */}
+            <div ref={zonaGestionRef} className="bg-slate-50 p-8 rounded-[3rem] border-2 border-slate-200 text-center scroll-mt-24">
+                <h3 className="text-slate-400 text-xs font-black uppercase tracking-[0.2em] mb-6">Zona de Gestión</h3>
                 <div className="space-y-3">
-                    {Object.entries(sitio.precios).map(([key, val]) => (
-                        <div key={key} className="flex justify-between items-center border-b border-slate-50 pb-2">
-                            {/* Uso del diccionario para mostrar 'Niños' en vez de 'NINOS' */}
-                            <span className="text-[10px] font-black uppercase text-slate-400">{etiquetasPrecios[key] || key}</span>
-                            <span className="text-lg font-black text-slate-700">${parseFloat(val).toFixed(2)}</span>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* ZONA DE ACCIONES */}
-            <div className="bg-red-50 p-8 rounded-[3rem] border-2 border-red-100 text-center">
-                <h3 className="text-red-500 text-xs font-black uppercase tracking-[0.2em] mb-6">Zona de Gestión</h3>
-                <div className="space-y-3">
+                    
                     <button 
-                        onClick={() => manejarAccion('desactivar')}
-                        className="w-full bg-white border border-red-200 text-red-600 hover:bg-red-600 hover:text-white py-4 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all shadow-sm"
+                        disabled={procesando}
+                        onClick={alternarEstadoSitio}
+                        className={`w-full py-4 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all shadow-sm border
+                            ${sitio.estado === 'activo' 
+                                ? 'bg-white border-orange-200 text-orange-500 hover:bg-orange-500 hover:text-white' 
+                                : 'bg-green-500 border-green-500 text-white hover:bg-green-600 shadow-green-200 shadow-lg'
+                            } ${procesando ? 'opacity-50 cursor-wait' : ''}`}
                     >
-                        Ocultar / Desactivar
+                        {procesando ? 'Procesando...' : (sitio.estado === 'activo' ? 'Ocultar / Desactivar' : 'Activar / Publicar')}
                     </button>
+
                     <button 
-                        onClick={() => manejarAccion('eliminar')}
-                        className="w-full bg-red-600 text-white hover:bg-red-700 py-4 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all shadow-lg shadow-red-200"
+                        disabled={procesando}
+                        onClick={eliminarSitio}
+                        className="w-full bg-red-600 text-white hover:bg-red-700 py-4 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all shadow-lg shadow-red-200 disabled:opacity-50"
                     >
                         Eliminar Sitio
                     </button>

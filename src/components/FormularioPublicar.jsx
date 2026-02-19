@@ -1,89 +1,25 @@
 import React, { useState, useEffect } from 'react'; 
-import { useNavigate, useParams } from 'react-router-dom'; // Importamos useParams
+import { useNavigate, useParams } from 'react-router-dom';
 import MapaFormulario from './MapaFormulario'; 
 
-// --- BASE DE DATOS TERRITORIAL (Mantener igual que tu código original) ---
+// --- BASE DE DATOS TERRITORIAL ---
 const divisionTerritorial = {
-  /* ==========================================
-  "Ahuachapán": {
-    "Ahuachapán Norte": ["Atiquizaya", "El Refugio", "San Lorenzo", "Turín"],
-    "Ahuachapán Centro": ["Ahuachapán", "Apaneca", "Concepción de Ataco", "Tacuba"],
-    "Ahuachapán Sur": ["Guaymango", "Jujutla", "San Francisco Menendez", "San Pedro Puxtla"]
-  },
-  "San Salvador": {
-    "San Salvador Norte": ["Aguilares", "El Paisnal", "Guazapa"],
-    "San Salvador Oeste": ["Apopa", "Nejapa"],
-    "San Salvador Este": ["llopango", "San Martín", "Soyapango", "Tonacatepeque"],
-    "San Salvador Centro": ["Ayutuxtepeque", "Mejicanos", "San Salvador", "Cuscatancingo", "Ciudad Delgado"],
-    "San Salvador Sur": ["Panchimalco", "Rosario de Mora", "San Marcos", "Santo Tomás", "Santiago Texacuangos"]
-  },
-  "La Libertad": {
-    "La Libertad Norte": ["Quezaltepeque", "San Matías", "San Pablo Tacachico"],
-    "La Libertad Centro": ["San Juan Opico", "Ciudad Arce"],
-    "La Libertad Oeste": ["Colón", "Jayaque", "Sacacoyo", "Tepecoyo", "Talnique"],
-    "La Libertad Este": ["Antiguo Cuscatlán", "Huizucar", "Nuevo Cuscatlán", "San José Villanueva", "Zaragoza"],
-    "La Libertad Costa": ["Chiltuipán", "Jicalapa", "La Libertad", "Tamanique", "Teotepeque"],
-    "La Libertad Sur": ["Comasagua", "Santa Tecla"]
-  },
-  "Chalatenango": {
-    "Chalatenango Norte": ["La Palma", "Citalá", "San Ignacio"],
-    "Chalatenango Centro": ["Nueva Concepción", "Tejutla", "La Reina", "Agua Caliente", "Dulce Nombre de María", "El Paraíso", "San Francisco Morazán", "San Rafael", "Santa Rita", "San Fernando"],
-    "Chalatenango Sur": ["Chalatenango", "Arcatao", "Azacualpa", "Comalapa", "Concepción Quezaltepeque", "El Carrizal", "La Laguna", "Las Vueltas", "Nombre de Jesús", "Nueva Trinidad", "Ojos de Agua", "Potonico", "San Antonio de La Cruz", "San Antonio Los Ranchos", "San Francisco Lempa", "San Isidro Labrador", "San José Cancasque", "San Miguel de Mercedes", "San José Las Flores", "San Luis del Carmen"]
-  },
-  "Cuscatlán": {
-    "Cuscatlán Norte": ["Suchitoto", "San José Guayabal", "Oratorio de Concepción", "San Bartolomé Perulapán", "San Pedro Perulapán"],
-    "Cuscatlán Sur": ["Cojutepeque", "San Rafael Cedros", "Candelaria", "Monte San Juan", "El Carmen", "San Cristóbal", "Santa Cruz Michapa", "San Ramón", "El Rosario", "Santa Cruz Analquito", "Tenancingo"]
-  },
-  "Cabañas": {
-    "Cabañas Este": ["Sensuntepeque", "Victoria", "Dolores", "Guacotecti", "San Isidro"],
-    "Cabañas Oeste": ["llobasco", "Tejutepeque", "Jutiapa", "Cinquera"]
-  },
-  ========================================== */
-  "La Paz": {
-    "La Paz Oeste": ["Cuyultitán", "Olocuilta", "San Juan Talpa", "San Luis Talpa", "San Pedro Masahuat", "Tapalhuaca", "San Francisco Chinameca"],
-    "La Paz Centro": ["El Rosario", "Jerusalén", "Mercedes La Ceiba", "Paraíso de Osorio", "San Antonio Masahuat", "San Emigdio", "San Juan Tepezontes", "San Luis La Herradura", "San Miguel Tepezontes", "San Pedro Nonualco", "Santa María Ostuma", "Santiago Nonualco"],
-    "La Paz Este": ["San Juan Nonualco", "San Rafael Obrajuelo", "Zacatecoluca"]
-  
-  },
-  /* ==========================================
-  "La Unión": {
-    "La Unión Norte": ["Anamorós", "Bolivar", "Concepción de Oriente", "El Sauce", "Lislique", "Nueva Esparta", "Pasaquina", "Polorós", "San José La Fuente", "Santa Rosa de Lima"],
-    "La Unión Sur": ["Conchagua", "El Carmen", "lntipucá", "La Unión", "Meanguera del Golfo", "San Alejo", "Yayantique", "Yucuaiquín"]
-  },
-  "Usulután": {
-    "Usulután Norte": ["Santiago de María", "Alegría", "Berlín", "Mercedes Umana", "Jucuapa", "El Triunfo", "Estanzuelas", "San Buenaventura", "Nueva Granada"],
-    "Usulután Este": ["Usulután", "Jucuarán", "San Dionisio", "Concepción Batres", "Santa María", "Ozatlán", "Tecapán", "Santa Elena", "California", "Ereguayquín"],
-    "Usulután Oeste": ["Jiquilisco", "Puerto El Triunfo", "San Agustín", "San Francisco Javier"]
-  },
-  "Sonsonate": {
-    "Sonsonate Norte": ["Juayúa", "Nahuizalco", "Salcoatitán", "Santa Catarina Masahuat"],
-    "Sonsonate Centro": ["Sonsonate", "Sonzacate", "Nahulingo", "San Antonio del Monte", "Santo Domingo de Guzmán"],
-    "Sonsonate Este": ["Izalco", "Armenia", "Caluco", "San Julián", "Cuisnahuat", "Santa Isabel lshuatán"],
-    "Sonsonate Oeste": ["Acajutla"]
-  },
-  "Santa Ana": {
-    "Santa Ana Norte": ["Masahuat", "Metapán", "Santa Rosa Guachipilín", "Texistepeque"],
-    "Santa Ana Centro": ["Santa Ana"],
-    "Santa Ana Este": ["Coatepeque", "El Congo"],
-    "Santa Ana Oeste": ["Candelaria de la Frontera", "Chalchuapa", "El Porvenir", "San Antonio Pajonal", "San Sebastián Salitrillo", "Santiago de La Frontera"]
-  },
-  "San Vicente": {
-    "San Vicente Norte": ["Apastepeque", "Santa Clara", "San Ildefonso", "San Esteban Catarina", "San Sebastián", "San Lorenzo", "Santo Domingo"],
-    "San Vicente Sur": ["San Vicente", "Guadalupe", "Verapaz", "Tepetitán", "Tecoluca", "San Cayetano lstepeque"]
-  },
-  "San Miguel": {
-    "San Miguel Norte": ["Ciudad Barrios", "Sesori", "Nuevo Edén de San Juan", "San Gerardo", "San Luis de La Reina", "Carolina", "San Antonio del Mosco", "Chapeltique"],
-    "San Miguel Centro": ["San Miguel", "Comacarán", "Uluazapa", "Moncagua", "Quelepa", "Chirilagua"],
-    "San Miguel Oeste": ["Chinameca", "Nueva Guadalupe", "Lolotique", "San Jorge", "San Rafael Oriente", "El Tránsito"]
-  },
-  "Morazán": {
-    "Morazán Norte": ["Arambala", "Cacaopera", "Corinto", "El Rosario", "Joateca", "Jocoaitique", "Meanguera", "Perquín", "San Fernando", "San Isidro", "Torola"],
-    "Morazán Sur": ["Chilanga", "Delicias de Concepción", "El Divisadero", "Gualococti", "Guatajiagua", "Jocoro", "Lolotiquillo", "Osicala", "San Carlos", "San Francisco Gotera", "San Simón", "Sensembra", "Sociedad", "Yamabal", "Yoloaiquín"]
-  }
-    ========================================== */
+  "Ahuachapán": { "Ahuachapán Norte": ["Atiquizaya", "El Refugio", "San Lorenzo", "Turín"], "Ahuachapán Centro": ["Ahuachapán", "Apaneca", "Concepción de Ataco", "Tacuba"], "Ahuachapán Sur": ["Guaymango", "Jujutla", "San Francisco Menendez", "San Pedro Puxtla"] },
+  "San Salvador": { "San Salvador Norte": ["Aguilares", "El Paisnal", "Guazapa"], "San Salvador Oeste": ["Apopa", "Nejapa"], "San Salvador Este": ["llopango", "San Martín", "Soyapango", "Tonacatepeque"], "San Salvador Centro": ["Ayutuxtepeque", "Mejicanos", "San Salvador", "Cuscatancingo", "Ciudad Delgado"], "San Salvador Sur": ["Panchimalco", "Rosario de Mora", "San Marcos", "Santo Tomás", "Santiago Texacuangos"] },
+  "La Libertad": { "La Libertad Norte": ["Quezaltepeque", "San Matías", "San Pablo Tacachico"], "La Libertad Centro": ["San Juan Opico", "Ciudad Arce"], "La Libertad Oeste": ["Colón", "Jayaque", "Sacacoyo", "Tepecoyo", "Talnique"], "La Libertad Este": ["Antiguo Cuscatlán", "Huizucar", "Nuevo Cuscatlán", "San José Villanueva", "Zaragoza"], "La Libertad Costa": ["Chiltuipán", "Jicalapa", "La Libertad", "Tamanique", "Teotepeque"], "La Libertad Sur": ["Comasagua", "Santa Tecla"] },
+  "Chalatenango": { "Chalatenango Norte": ["La Palma", "Citalá", "San Ignacio"], "Chalatenango Centro": ["Nueva Concepción", "Tejutla", "La Reina", "Agua Caliente", "Dulce Nombre de María", "El Paraíso", "San Francisco Morazán", "San Rafael", "Santa Rita", "San Fernando"], "Chalatenango Sur": ["Chalatenango", "Arcatao", "Azacualpa", "Comalapa", "Concepción Quezaltepeque", "El Carrizal", "La Laguna", "Las Vueltas", "Nombre de Jesús", "Nueva Trinidad", "Ojos de Agua", "Potonico", "San Antonio de La Cruz", "San Antonio Los Ranchos", "San Francisco Lempa", "San Isidro Labrador", "San José Cancasque", "San Miguel de Mercedes", "San José Las Flores", "San Luis del Carmen"] },
+  "Cuscatlán": { "Cuscatlán Norte": ["Suchitoto", "San José Guayabal", "Oratorio de Concepción", "San Bartolomé Perulapán", "San Pedro Perulapán"], "Cuscatlán Sur": ["Cojutepeque", "San Rafael Cedros", "Candelaria", "Monte San Juan", "El Carmen", "San Cristóbal", "Santa Cruz Michapa", "San Ramón", "El Rosario", "Santa Cruz Analquito", "Tenancingo"] },
+  "Cabañas": { "Cabañas Este": ["Sensuntepeque", "Victoria", "Dolores", "Guacotecti", "San Isidro"], "Cabañas Oeste": ["llobasco", "Tejutepeque", "Jutiapa", "Cinquera"] },
+  "La Paz": { "La Paz Oeste": ["Cuyultitán", "Olocuilta", "San Juan Talpa", "San Luis Talpa", "San Pedro Masahuat", "Tapalhuaca", "San Francisco Chinameca"], "La Paz Centro": ["El Rosario", "Jerusalén", "Mercedes La Ceiba", "Paraíso de Osorio", "San Antonio Masahuat", "San Emigdio", "San Juan Tepezontes", "San Luis La Herradura", "San Miguel Tepezontes", "San Pedro Nonualco", "Santa María Ostuma", "Santiago Nonualco"], "La Paz Este": ["San Juan Nonualco", "San Rafael Obrajuelo", "Zacatecoluca"] },
+  "La Unión": { "La Unión Norte": ["Anamorós", "Bolivar", "Concepción de Oriente", "El Sauce", "Lislique", "Nueva Esparta", "Pasaquina", "Polorós", "San José La Fuente", "Santa Rosa de Lima"], "La Unión Sur": ["Conchagua", "El Carmen", "lntipucá", "La Unión", "Meanguera del Golfo", "San Alejo", "Yayantique", "Yucuaiquín"] },
+  "Usulután": { "Usulután Norte": ["Santiago de María", "Alegría", "Berlín", "Mercedes Umana", "Jucuapa", "El Triunfo", "Estanzuelas", "San Buenaventura", "Nueva Granada"], "Usulután Este": ["Usulután", "Jucuarán", "San Dionisio", "Concepción Batres", "Santa María", "Ozatlán", "Tecapán", "Santa Elena", "California", "Ereguayquín"], "Usulután Oeste": ["Jiquilisco", "Puerto El Triunfo", "San Agustín", "San Francisco Javier"] },
+  "Sonsonate": { "Sonsonate Norte": ["Juayúa", "Nahuizalco", "Salcoatitán", "Santa Catarina Masahuat"], "Sonsonate Centro": ["Sonsonate", "Sonzacate", "Nahulingo", "San Antonio del Monte", "Santo Domingo de Guzmán"], "Sonsonate Este": ["Izalco", "Armenia", "Caluco", "San Julián", "Cuisnahuat", "Santa Isabel lshuatán"], "Sonsonate Oeste": ["Acajutla"] },
+  "Santa Ana": { "Santa Ana Norte": ["Masahuat", "Metapán", "Santa Rosa Guachipilín", "Texistepeque"], "Santa Ana Centro": ["Santa Ana"], "Santa Ana Este": ["Coatepeque", "El Congo"], "Santa Ana Oeste": ["Candelaria de la Frontera", "Chalchuapa", "El Porvenir", "San Antonio Pajonal", "San Sebastián Salitrillo", "Santiago de La Frontera"] },
+  "San Vicente": { "San Vicente Norte": ["Apastepeque", "Santa Clara", "San Ildefonso", "San Esteban Catarina", "San Sebastián", "San Lorenzo", "Santo Domingo"], "San Vicente Sur": ["San Vicente", "Guadalupe", "Verapaz", "Tepetitán", "Tecoluca", "San Cayetano lstepeque"] },
+  "San Miguel": { "San Miguel Norte": ["Ciudad Barrios", "Sesori", "Nuevo Edén de San Juan", "San Gerardo", "San Luis de La Reina", "Carolina", "San Antonio del Mosco", "Chapeltique"], "San Miguel Centro": ["San Miguel", "Comacarán", "Uluazapa", "Moncagua", "Quelepa", "Chirilagua"], "San Miguel Oeste": ["Chinameca", "Nueva Guadalupe", "Lolotique", "San Jorge", "San Rafael Oriente", "El Tránsito"] },
+  "Morazán": { "Morazán Norte": ["Arambala", "Cacaopera", "Corinto", "El Rosario", "Joateca", "Jocoaitique", "Meanguera", "Perquín", "San Fernando", "San Isidro", "Torola"], "Morazán Sur": ["Chilanga", "Delicias de Concepción", "El Divisadero", "Gualococti", "Guatajiagua", "Jocoro", "Lolotiquillo", "Osicala", "San Carlos", "San Francisco Gotera", "San Simón", "Sensembra", "Sociedad", "Yamabal", "Yoloaiquín"] }
 };
 
-// --- MODAL DE ÉXITO (Respetado) ---
 const ModalExito = ({ visible, alCerrar, correo, esEdicion }) => {
   if (!visible) return null;
   return (
@@ -105,9 +41,34 @@ const ModalExito = ({ visible, alCerrar, correo, esEdicion }) => {
   );
 };
 
+// --- NUEVO MODAL DE CONFIRMACIÓN ELEGANTE ---
+const ModalConfirmacion = ({ visible, alCerrar, alConfirmar, cantidadFotos }) => {
+  if (!visible) return null;
+  return (
+    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-sm animate-in fade-in duration-300">
+      <div className="bg-white w-full max-w-md rounded-[2.5rem] p-8 text-center shadow-2xl border border-slate-100 relative">
+        <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 shadow-sm font-black">?</div>
+        <h3 className="text-xl font-black text-slate-800 uppercase tracking-tighter mb-2">¿Estás seguro?</h3>
+        <p className="text-slate-500 text-[11px] font-bold uppercase tracking-widest leading-relaxed mb-6">
+          Estás a punto de enviar la información con <span className="text-blue-600 font-black">{cantidadFotos} archivos adjuntos</span>. 
+          <br/>Por favor confirma que la información es correcta.
+        </p>
+        <div className="flex gap-3">
+            <button onClick={alCerrar} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-400 font-black py-4 rounded-2xl text-[9px] uppercase tracking-widest transition-all">
+                Revisar
+            </button>
+            <button onClick={alConfirmar} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl shadow-lg shadow-blue-200 text-[9px] uppercase tracking-widest transition-all active:scale-95">
+                Sí, Enviar
+            </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function FormularioPublicar() {
   const navigate = useNavigate();
-  const { id } = useParams(); // CAPTURAMOS EL ID SI EXISTE
+  const { id } = useParams();
 
   const sesionActiva = JSON.parse(localStorage.getItem('usuarioLogueado')) || {
     idusuario: "eec174fd-7093-4efe-82a6-a7828ccf1703", 
@@ -119,19 +80,17 @@ export default function FormularioPublicar() {
 
   const [correoBD, setCorreoBD] = useState(sesionActiva.correo);
   const [mostrarExito, setMostrarExito] = useState(false); 
+  // ESTADO NUEVO PARA EL MODAL DE CONFIRMACIÓN
+  const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false); 
+  
   const [archivosFotos, setArchivosFotos] = useState([]); 
   const [previews, setPreviews] = useState([]); 
   const [cargando, setCargando] = useState(false);
   const [coordManual, setCoordManual] = useState({ lat: '', lng: '' });
 
   const [formData, setFormData] = useState({
-    nombreSitio: '',
-    departamento: '',
-    municipio: '', 
-    distrito: '',   
-    ubicacion: null, 
-    categoria: '', 
-    descripcion: '',
+    nombreSitio: '', departamento: '', municipio: '', distrito: '',   
+    ubicacion: null, categoria: '', descripcion: '',
     precios: { adultos: '', ninos: '', terceraEdad: '' },
     horarios: {
       lunes: { abierto: false, inicio: '08:00', fin: '17:00' },
@@ -150,18 +109,15 @@ export default function FormularioPublicar() {
     }
   });
 
-  // LÓGICA DE CARGA PARA EDICIÓN
+  // Carga de datos para edición (se mantiene igual)
   useEffect(() => {
     const cargarDatosEdicion = async () => {
-        if (!id) return; // Si no hay ID, es modo creación, no hacemos nada.
-        
+        if (!id) return; 
         try {
             setCargando(true);
-            const res = await fetch(`http://100.123.6.123:8000/api/preformularios/${id}`);
+            const res = await fetch(`http://100.123.6.123:8000/api/preformularios/detalles/${id}`);
             if (res.ok) {
                 const data = await res.json();
-                
-                // Mapeo de la API al estado de tu formulario
                 setFormData({
                     nombreSitio: data.nombre,
                     departamento: data.departamento,
@@ -184,22 +140,15 @@ export default function FormularioPublicar() {
                     }
                 });
                 setCoordManual({ lat: data.latitud, lng: data.longitud });
-                // Previsualizar imágenes existentes
                 if (data.imagenes) {
                     setPreviews(data.imagenes.map(img => `http://100.123.6.123:8000/storage/preformularios/${img.url_imagen}`));
                 }
             }
-        } catch (error) {
-            console.error("Error al cargar datos:", error);
-        } finally {
-            setCargando(false);
-        }
+        } catch (error) { console.error("Error al cargar datos:", error); } finally { setCargando(false); }
     };
-
     cargarDatosEdicion();
   }, [id]);
 
-  // Función auxiliar para convertir "08:00-17:00" al estado de tu formulario
   const procesarHorariosDesdeAPI = (horariosAPI) => {
     const dias = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
     const nuevoHorario = {};
@@ -207,15 +156,12 @@ export default function FormularioPublicar() {
         if (horariosAPI[dia]) {
             const [inicio, fin] = horariosAPI[dia].split('-');
             nuevoHorario[dia] = { abierto: true, inicio, fin };
-        } else {
-            nuevoHorario[dia] = { abierto: false, inicio: '08:00', fin: '17:00' };
-        }
+        } else { nuevoHorario[dia] = { abierto: false, inicio: '08:00', fin: '17:00' }; }
     });
     return nuevoHorario;
   };
 
-  // Efecto para el correo oficial (Respetado)
-  useEffect(() => {
+ useEffect(() => {
     const obtenerCorreoOficial = async () => {
       if (!sesionActiva.idusuario) return;
       try {
@@ -224,30 +170,31 @@ export default function FormularioPublicar() {
           const datos = await respuesta.json();
           if (datos.email) setCorreoBD(datos.email);
         }
-      } catch (error) {
-        console.error("Fallo de sincronización con el servidor.");
-      }
+      } catch (error) { console.error("Fallo de sincronización con el servidor."); }
     };
     obtenerCorreoOficial();
   }, [sesionActiva.idusuario]);
 
-  // Manejadores (Respetados íntegramente)
+  // Handlers normales
   const manejarCambioUbicacion = (e) => {
     const { name, value } = e.target;
-    if (name === 'departamento') {
-      setFormData({ ...formData, departamento: value, municipio: '', distrito: '' });
-    } else if (name === 'municipio') {
-      setFormData({ ...formData, municipio: value, distrito: '' });
-    } else {
-      setFormData({ ...formData, [name]: value });
-    }
+    if (name === 'departamento') setFormData({ ...formData, departamento: value, municipio: '', distrito: '' });
+    else if (name === 'municipio') setFormData({ ...formData, municipio: value, distrito: '' });
+    else setFormData({ ...formData, [name]: value });
   };
 
-  const generarNombreImagen = (archivo, objetivo, carpeta) => {
+  const generarIDLote = () => {
+      const caracteres = 'abcdefghijklmnopqrstuvwxyz0123456789';
+      let resultado = '';
+      for (let i = 0; i < 10; i++) resultado += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
+      return resultado;
+  };
+
+  const generarNombreImagen = (archivo, objetivo, carpeta, loteID, indice) => {
     const hoy = new Date();
     const fechaCodificada = `${String(hoy.getDate()).padStart(2, '0')}${String(hoy.getMonth() + 1).padStart(2, '0')}${hoy.getFullYear()}`;
     const extension = archivo.name.split('.').pop();
-    return `0000${fechaCodificada}${objetivo}${carpeta}.${extension}`;
+    return `0000${fechaCodificada}${objetivo}${carpeta}-${loteID}-${indice}.${extension}`;
   };
 
   const manejarCambio = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -255,10 +202,7 @@ export default function FormularioPublicar() {
   const manejarPrecio = (e) => setFormData({ ...formData, precios: { ...formData.precios, [e.target.name]: e.target.value } });
   
   const manejarHorario = (dia, campo, valor) => {
-    setFormData({ 
-      ...formData, 
-      horarios: { ...formData.horarios, [dia]: { ...formData.horarios[dia], [campo]: valor } } 
-    });
+    setFormData({ ...formData, horarios: { ...formData.horarios, [dia]: { ...formData.horarios[dia], [campo]: valor } } });
   };
 
   const manejarArchivos = (e) => {
@@ -285,17 +229,22 @@ export default function FormularioPublicar() {
     else alert("Ingresa coordenadas válidas.");
   };
 
-  const manejarEnvio = async (e) => {
+  // --- PASO 1: ACTIVAR MODAL ---
+  const manejarEnvio = (e) => {
     e.preventDefault();
     if (!formData.ubicacion) return alert("Selecciona ubicación en el mapa.");
-    
-    // Solo exigimos fotos nuevas si es creación o si borraron todas las anteriores
     if (archivosFotos.length === 0 && previews.length === 0) return alert("Sube al menos una fotografía.");
+    
+    // Abrimos el modal de confirmación en lugar de enviar directo
+    setMostrarConfirmacion(true);
+  };
 
+  // --- PASO 2: PROCESO DE ENVÍO REAL (Se ejecuta al confirmar) ---
+  const procesarEnvioConfirmado = async () => {
+    setMostrarConfirmacion(false); // Cerramos el modal
     setCargando(true);
     const data = new FormData();
     
-    // Si es edición, enviamos el método PUT (Julio lo necesita)
     if (id) data.append('_method', 'PUT');
 
     data.append('nombre', formData.nombreSitio); 
@@ -332,18 +281,21 @@ export default function FormularioPublicar() {
     data.append('detalles', JSON.stringify({ tarifas_desglosadas: formData.precios }));
     data.append('usuario', sesionActiva.idusuario);
 
+    // --- LÓGICA DE FOTOS POR LOTE ---
+    const loteID = generarIDLote(); 
+
     archivosFotos.forEach((archivo, index) => {
-      const nombreCodificado = generarNombreImagen(archivo, "preformulario", "preformularios");
+      const nombreCodificado = generarNombreImagen(archivo, "preformulario", "preformularios", loteID, index + 1);
       const archivoBautizado = new File([archivo], nombreCodificado, { type: archivo.type });
       data.append(`imagenes[${index}]`, archivoBautizado);
     });
 
     try {
       const urlBase = 'http://100.123.6.123:8000/api/preformularios';
-      const urlFinal = id ? `${urlBase}/${id}` : urlBase;
+      const urlFinal = id ? `${urlBase}/actualizar/${id}` : `${urlBase}/crear`;
       
       const respuesta = await fetch(urlFinal, {
-        method: 'POST', // Usamos POST porque enviamos FormData con imágenes
+        method: 'POST', 
         headers: { 'Accept': 'application/json' },
         body: data,
       });
@@ -369,6 +321,14 @@ export default function FormularioPublicar() {
         esEdicion={!!id} 
       />
       
+      {/* MODAL DE CONFIRMACIÓN */}
+      <ModalConfirmacion 
+        visible={mostrarConfirmacion} 
+        alCerrar={() => setMostrarConfirmacion(false)} 
+        alConfirmar={procesarEnvioConfirmado} 
+        cantidadFotos={archivosFotos.length} 
+      />
+      
       <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl border border-slate-200 overflow-hidden text-slate-800">
         <div className="bg-blue-800 p-10 text-white relative z-[50]">
           <h3 className="text-3xl font-black tracking-tight uppercase italic text-center leading-none">
@@ -378,9 +338,9 @@ export default function FormularioPublicar() {
           <button onClick={() => navigate(-1)} className="absolute top-8 right-8 bg-white/10 hover:bg-white/20 p-3 rounded-2xl transition-all font-black">✕</button>
         </div>
 
+        {/* NOTA: El onSubmit ahora llama a manejarEnvio, que solo abre el modal */}
         <form onSubmit={manejarEnvio} className="p-10 space-y-12">
           
-          {/* SECCIÓN 01: DATOS GENERALES (Respetada) */}
           <div className="space-y-6">
             <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-[0.2em]">01. Datos Generales</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -415,7 +375,6 @@ export default function FormularioPublicar() {
             </div>
           </div>
 
-          {/* SECCIÓN 02: MAPA (Respetada) */}
           <div className="space-y-6">
             <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-[0.2em]">02. Ubicación Cartográfica</h4>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 p-4 rounded-3xl border border-slate-100 shadow-inner">
@@ -439,7 +398,6 @@ export default function FormularioPublicar() {
             </div>
           </div>
 
-          {/* SECCIÓN 03: CATEGORÍAS (Respetada) */}
           <div className="space-y-8">
             <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-[0.2em]">03. Clasificación y Políticas</h4>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -465,7 +423,6 @@ export default function FormularioPublicar() {
             </div>
           </div>
 
-          {/* SECCIÓN 04: HORARIOS Y COSTOS (Respetada) */}
           <div className="space-y-6">
             <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-[0.2em]">04. Horarios y Costos</h4>
             <div className="bg-slate-50 rounded-[2rem] p-6 border border-slate-100 space-y-6 italic text-slate-700">
@@ -515,7 +472,6 @@ export default function FormularioPublicar() {
             </div>
           </div>
 
-          {/* SECCIÓN 06: FOTOS (Respetada) */}
           <div className="space-y-4">
             <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-[0.2em]">06. Fotografía del Destino (MÁX. 10)</h4>
             <div className="space-y-4">
@@ -541,7 +497,6 @@ export default function FormularioPublicar() {
             </div>
           </div>
 
-          {/* SECCIÓN 07: IDENTIFICACIÓN (Respetada) */}
           <div className="pt-10 border-t border-slate-200 space-y-6">
             <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-[0.2em]">07. Identificación del Colaborador</h4>
             <div className="bg-blue-50/50 p-10 rounded-[2.5rem] border border-blue-100 space-y-8 relative overflow-hidden group">

@@ -27,7 +27,7 @@ export default function Home() {
   };
 
   return (
-    <main className="max-w-7xl mx-auto p-6 space-y-8 animate-in fade-in duration-500">
+    <main className="max-w-7xl mx-auto p-6 space-y-8 animate-in fade-in duration-500 italic">
       <section className="text-center space-y-6 pt-10">
         <h2 className="text-4xl font-black text-blue-900 uppercase tracking-tighter">Explora El Salvador</h2>
         <div className="max-w-4xl mx-auto relative group">
@@ -50,16 +50,33 @@ export default function Home() {
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pb-20">
         {departamentosFiltrados.map((depto) => {
           const idParaDOM = depto.nombre.toLowerCase().replace(/\s+/g, '_');
+          
+          // --- LÓGICA DE BLOQUEO: Solo habilitamos La Paz ---
+          const esLaPaz = depto.nombre.toLowerCase() === 'la paz';
+
           return (
-            <div key={depto.id} id={idParaDOM} className={`bg-white p-6 rounded-[2rem] shadow-sm border transition-all duration-500 ${deptoResaltado === idParaDOM ? 'border-blue-500 ring-4 ring-blue-50' : 'border-slate-100'}`}>
+            <div 
+                key={depto.id} 
+                id={idParaDOM} 
+                className={`bg-white p-6 rounded-[2rem] shadow-sm border transition-all duration-500 
+                ${deptoResaltado === idParaDOM ? 'border-blue-500 ring-4 ring-blue-50' : 'border-slate-100'}
+                ${!esLaPaz ? 'opacity-70 grayscale-[0.5]' : ''}`}
+            >
               <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">{depto.zona}</span>
               <h3 className="text-xl font-bold mt-1 text-slate-800">{depto.nombre}</h3>
-              <button 
-                onClick={() => navigate(`/departamento/${depto.nombre}`)}
-                className="mt-4 flex items-center text-sm font-bold text-blue-600 hover:translate-x-1 transition-transform"
-              >
-                Ver destinos <span className="ml-1">→</span>
-              </button>
+              
+              {esLaPaz ? (
+                <button 
+                  onClick={() => navigate(`/departamento/${depto.nombre}`)}
+                  className="mt-4 flex items-center text-sm font-bold text-blue-600 hover:translate-x-1 transition-transform"
+                >
+                  Ver destinos <span className="ml-1">→</span>
+                </button>
+              ) : (
+                <div className="mt-4 flex items-center text-sm font-bold text-slate-300 cursor-not-allowed">
+                  Próximamente <span className="ml-2 text-xs">🔒</span>
+                </div>
+              )}
             </div>
           );
         })}

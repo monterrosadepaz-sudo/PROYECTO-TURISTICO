@@ -14,8 +14,10 @@ import RestablecerClave from "./components/RestablecerClave";
 import MisPropuestas from "./components/MisPropuestas"; 
 import PerfilUsuario from "./components/PerfilUsuario"; 
 
-// --- NUEVO IMPORT DE LA VISTA DEL ADMIN ---
+// --- NUEVOS IMPORTS ---
 import AdminDetalleSitio from "./components/AdminDetalleSitio";
+import DetallePublico from "./components/DetallePublico"; 
+import Prueba360 from "./components/Prueba360"; // <--- Importamos tu nuevo juguete
 
 function AppContent() {
   const navigate = useNavigate();
@@ -116,9 +118,13 @@ function AppContent() {
       <div className="flex-grow"> 
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/departamento/:nombreDepto" element={<VistaDepartamento onSeleccionarSitio={setSitioSeleccionado} />} />
           
-          <Route path="/destino" element={sitioSeleccionado ? <DetalleDestino sitio={sitioSeleccionado} /> : <Navigate to="/" replace />} />
+          {/* RUTA DE PRUEBA 360 - HARDCODEADA */}
+          <Route path="/test-360" element={<Prueba360 />} />
+
+          <Route path="/departamento/:nombreDepto" element={<VistaDepartamento onSeleccionarSitio={setSitioSeleccionado} />} />
+          <Route path="/destino/:id" element={<DetallePublico />} />
+          <Route path="/mi-destino" element={sitioSeleccionado ? <DetalleDestino sitio={sitioSeleccionado} /> : <Navigate to="/" replace />} />
           
           <Route 
             path="/publicar" 
@@ -145,7 +151,6 @@ function AppContent() {
             element={rolUsuario === 'admin' ? <AdminDashboard /> : <Navigate to="/" replace />} 
           />
 
-          {/* --- NUEVA RUTA: VISTA DE DETALLE DEL ADMIN --- */}
           <Route 
             path="/admin/sitio/:id" 
             element={rolUsuario === 'admin' ? <AdminDetalleSitio /> : <Navigate to="/" replace />} 
