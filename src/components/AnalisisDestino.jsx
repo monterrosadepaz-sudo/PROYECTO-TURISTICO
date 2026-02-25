@@ -3,37 +3,93 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
+import { reglasPermisos, serviciosAmenidades, actividadesDestacadas } from '../data/OpcionesDestino';
+
 // --- COMPONENTE DE GALERÍA INTELIGENTE ---
 const GaleriaEvidencia = ({ imagenes, imagenPrincipal }) => {
   const [fotoSeleccionada, setFotoSeleccionada] = useState(null);
-  let listaImagenes = [];
+  let listaMultimedia = [];
   
-  if (imagenes && Array.isArray(imagenes) && imagenes.length > 0) {
-      listaImagenes = imagenes.map(img => img.url_imagen || img); 
+  if (imagenes && typeof imagenes === 'object' && !Array.isArray(imagenes)) {
+      if (imagenes.plana && Array.isArray(imagenes.plana)) {
+          imagenes.plana.forEach(img => listaMultimedia.push({ url: img, tipo: 'plana' }));
+      }
+      if (imagenes['360'] && Array.isArray(imagenes['360'])) {
+          imagenes['360'].forEach(img => listaMultimedia.push({ url: img, tipo: '360' }));
+      }
+      if (imagenes.video && Array.isArray(imagenes.video)) {
+          imagenes.video.forEach(vid => listaMultimedia.push({ url: vid, tipo: 'video' }));
+      }
+  } else if (imagenes && Array.isArray(imagenes) && imagenes.length > 0) {
+      imagenes.forEach(img => {
+          const urlStr = img.url_imagen || img;
+          const tipo = urlStr.includes('.mp4') ? 'video' : (urlStr.includes('-360') ? '360' : 'plana');
+          listaMultimedia.push({ url: urlStr, tipo: tipo });
+      });
   } else if (imagenPrincipal) {
-      listaImagenes = [imagenPrincipal];
+      listaMultimedia.push({ url: imagenPrincipal, tipo: 'plana' });
   }
 
-  if (listaImagenes.length === 0) return <div className="p-10 bg-slate-100 rounded-[3rem] text-center text-slate-400 font-bold uppercase italic">Sin evidencia visual disponible.</div>;
+  // 🚀 LA MAGIA ESTÁ AQUÍ: El enrutador inteligente
+  const obtenerRutaSegura = (nombre) => {
+      if (nombre.startsWith('http')) return nombre;
+      if (nombre.includes('publicacion')) return `http://100.123.6.123:8000/storage/publicaciones/${nombre}`;
+      return `http://100.123.6.123:8000/storage/preformularios/${nombre}`;
+  };
+
+  if (listaMultimedia.length === 0) return <div className="p-10 bg-slate-100 rounded-[3rem] text-center text-slate-400 font-bold uppercase italic">Sin evidencia visual disponible.</div>;
 
   return (
     <>
       {fotoSeleccionada && (
         <div className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-300" onClick={() => setFotoSeleccionada(null)}>
-          <button className="absolute top-6 right-6 bg-white/10 hover:bg-white/30 text-white rounded-full p-4 transition-all">✕</button>
-          <img src={fotoSeleccionada} className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-300 select-none" onClick={(e) => e.stopPropagation()} alt="Zoom" />
+          <button className="absolute top-6 right-6 bg-white/10 hover:bg-white/30 text-white rounded-full p-4 transition-all z-10">✕</button>
+          {fotoSeleccionada.tipo === 'video' ? (
+              <video controls autoPlay className="max-w-full max-h-[90vh] object-contain shadow-2xl rounded-lg animate-in zoom-in-95 duration-300" onClick={(e) => e.stopPropagation()}>
+                  <source src={fotoSeleccionada.url} type="video/mp4" />
+              </video>
+          ) : (
+              <img src={fotoSeleccionada.url} className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-300 select-none" onClick={(e) => e.stopPropagation()} alt="Zoom" />
+          )}
         </div>
       )}
+
       <div className="space-y-4">
-        <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-widest italic px-4 mb-4">Evidencia Multimedia ({listaImagenes.length})</h4>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-          {listaImagenes.map((url, index) => {
-            const rutaCompleta = url.startsWith('http') ? url : `http://100.123.6.123:8000/storage/preformularios/${url}`;
-            const esVideo = url.toLowerCase().endsWith('.mp4') || url.toLowerCase().endsWith('.mov');
+        <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-widest italic px-4 mb-4">Evidencia Multimedia ({listaMultimedia.length})</h4>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
+          {listaMultimedia.map((item, index) => {
+            const rutaCompleta = obtenerRutaSegura(item.url); // Usamos el enrutador
+            
             return (
-              <div key={index} onClick={() => !esVideo && setFotoSeleccionada(rutaCompleta)} className={`group relative aspect-square rounded-[2rem] overflow-hidden border-4 border-white shadow-xl bg-slate-200 hover:scale-[1.02] transition-transform duration-300 ${!esVideo ? 'cursor-zoom-in' : ''}`}>
-                {esVideo ? <video controls className="w-full h-full object-cover"><source src={rutaCompleta} /></video> : <img src={rutaCompleta} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt={`Evidencia ${index + 1}`} onError={(e) => e.target.style.display = 'none'} />}
-                <div className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-md text-white text-[9px] font-black px-3 py-1 rounded-lg">{esVideo ? 'VIDEO' : `IMG 0${index + 1}`}</div>
+              <div 
+                key={index} 
+                onClick={() => setFotoSeleccionada({ url: rutaCompleta, tipo: item.tipo })} 
+                className="group relative aspect-square rounded-[2rem] overflow-hidden border-4 border-white shadow-xl bg-slate-900 cursor-zoom-in"
+              >
+                {item.tipo === 'video' ? (
+                    <>
+                        <video src={`${rutaCompleta}#t=0.001`} className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity duration-500" preload="metadata" muted />
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div className="bg-white/30 backdrop-blur-sm w-12 h-12 rounded-full flex items-center justify-center text-white pl-1 shadow-lg border border-white/50 text-xl">▶</div>
+                        </div>
+                    </>
+                ) : (
+                    <img 
+                      src={rutaCompleta} 
+                      className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 ${item.tipo === '360' ? 'saturate-110' : ''}`} 
+                      alt={`Evidencia ${index + 1}`} 
+                    />
+                )}
+                
+                {item.tipo === '360' ? (
+                    <div className="absolute bottom-4 left-4 bg-blue-600 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg border border-blue-400 uppercase tracking-widest">
+                        360°
+                    </div>
+                ) : (
+                    <div className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-md text-white text-[8px] font-black px-3 py-1 rounded-lg uppercase tracking-widest">
+                        {item.tipo === 'video' ? 'VIDEO' : `IMG 0${index + 1}`}
+                    </div>
+                )}
               </div>
             );
           })}
@@ -55,48 +111,66 @@ export default function AnalisisDestino() {
   const [accionTipo, setAccionTipo] = useState(null); 
   const [procesando, setProcesando] = useState(false);
   const [exito, setExito] = useState(false);
+  const [origenDatos, setOrigenDatos] = useState('preformularios'); 
 
   const sesionActiva = JSON.parse(localStorage.getItem('usuarioLogueado'));
   const ordenDias = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
 
   const solicitudOriginal = location.state?.datosSolicitud;
 
+  const limpiarJSON = (data) => {
+      if (!data || data === "null") return {};
+      if (typeof data === 'object') return data;
+      try {
+          let cleaned = data.replace(/\\+"/g, '"').replace(/\\"/g, '"');
+          if (cleaned.startsWith('"') && cleaned.endsWith('"')) cleaned = cleaned.substring(1, cleaned.length - 1);
+          if (cleaned.startsWith('"')) cleaned = cleaned.substring(1, cleaned.length - 1).replace(/\\"/g, '"');
+          return JSON.parse(cleaned);
+      } catch (e) { return {}; }
+  };
+
   useEffect(() => {
     const obtenerDetalles = async () => {
       try {
-        const url = `http://100.123.6.123:8000/api/admin/preformularios/${id}/analizar`;
-        const respuesta = await fetch(url, {
-          method: 'GET',
-          headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
-        });
+        let url = `http://100.123.6.123:8000/api/admin/preformularios/${id}/analizar`;
+        let respuesta = await fetch(url, { method: 'GET', headers: { 'Accept': 'application/json' } });
+        let datosEncontrados = null;
+        let origen = 'preformularios';
 
         if (respuesta.ok) {
-          const datos = await respuesta.json();
-          const safeJsonParse = (val) => {
-              if (typeof val === 'string') { try { return JSON.parse(val); } catch (e) { return val; } }
-              return val; 
-          };
+            datosEncontrados = await respuesta.json();
+        } else {
+            url = `http://100.123.6.123:8000/api/admin/publicaciones/${id}`;
+            respuesta = await fetch(url, { method: 'GET', headers: { 'Accept': 'application/json' } });
+            
+            if (respuesta.ok) {
+                datosEncontrados = await respuesta.json();
+                if (datosEncontrados.data) datosEncontrados = datosEncontrados.data;
+                origen = 'publicaciones';
+            }
+        }
 
+        if (datosEncontrados) {
+          if (datosEncontrados.error) throw new Error(datosEncontrados.error);
+
+          setOrigenDatos(origen);
           setSitio({
-            ...datos,
-            politicas: safeJsonParse(datos.politicas) || {},
-            horarios: safeJsonParse(datos.horarios) || {},
-            clasificacion: safeJsonParse(datos.clasificacion) || [],
-            detalles: safeJsonParse(datos.detalles) || {},
-            lote_imagenes: safeJsonParse(datos.lote_imagenes) || [] 
+            ...datosEncontrados,
+            politicas: limpiarJSON(datosEncontrados.politicas) || {},
+            horarios: limpiarJSON(datosEncontrados.horarios) || {},
+            clasificacion: limpiarJSON(datosEncontrados.clasificacion) || [],
+            detalles: limpiarJSON(datosEncontrados.detalles) || {},
+            lote_imagenes: limpiarJSON(datosEncontrados.lote_imagenes || datosEncontrados.imagenes) || [] 
           });
         }
-      } catch (error) { console.error("Error de conexión:", error); } finally { setCargando(false); }
+      } catch (error) { 
+          console.error("Error de conexión:", error); 
+      } finally { 
+          setCargando(false); 
+      }
     };
     obtenerDetalles();
   }, [id]);
-
-  const listaPermisos = [
-    { id: 'traer_comida', label: 'Traer comida' }, { id: 'gaseosas_agua', label: 'Gaseosas / Agua' },
-    { id: 'alcohol', label: 'Alcohol' }, { id: 'mascotas', label: 'Mascotas' },
-    { id: 'mesas_sillas', label: 'Mesas y sillas' }, { id: 'hamacas', label: 'Hamacas' },
-    { id: 'parrillas_cocinas', label: 'Parrillas / Cocinas' }, { id: 'armas_de_fuego', label: 'Armas de fuego' }
-  ];
 
   const solicitarGestion = (tipo) => { setAccionTipo(tipo); setModalOpen(true); };
 
@@ -104,45 +178,73 @@ export default function AnalisisDestino() {
     setProcesando(true);
     try {
       if (!sesionActiva || !sesionActiva.idusuario) {
-          alert("Error de seguridad: No se detectó un administrador logueado.");
-          setProcesando(false); setModalOpen(false); return;
+          alert("Error de seguridad: No se detectó un administrador.");
+          return;
       }
       
-      const url = accionTipo === 'aprobado'
-        ? `http://100.123.6.123:8000/api/admin/preformularios/${id}/approve`
-        : `http://100.123.6.123:8000/api/admin/preformularios/${id}/reject`;
+      let urlAccion = "";
+      if (origenDatos === 'preformularios') {
+          urlAccion = accionTipo === 'aprobado'
+            ? `http://100.123.6.123:8000/api/admin/preformularios/${id}/approve`
+            : `http://100.123.6.123:8000/api/admin/preformularios/${id}/reject`;
+      } else {
+          urlAccion = accionTipo === 'aprobado'
+            ? `http://100.123.6.123:8000/api/admin/publicaciones/activar/${id}`
+            : `http://100.123.6.123:8000/api/admin/publicaciones/desactivar/${id}`;
+      }
 
-      const payload = {
-          admin_id: sesionActiva.idusuario,
-          respuesta_a: solicitudOriginal?.idmensaje || null 
-      };
-
-      const respuesta = await fetch(url, {
+      const resAccion = await fetch(urlAccion, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ admin_id: sesionActiva.idusuario })
       });
 
-      if (respuesta.ok) {
-        // --- AQUÍ ESTÁ LA MAGIA DEL "VISTO" ---
-        // Guardamos el ID en localStorage para que el Dashboard sepa que ya lo vimos
-        if (solicitudOriginal?.idmensaje) {
-            const vistos = JSON.parse(localStorage.getItem('solicitudes_vistas') || '[]');
-            if (!vistos.includes(solicitudOriginal.idmensaje)) {
-                vistos.push(solicitudOriginal.idmensaje);
-                localStorage.setItem('solicitudes_vistas', JSON.stringify(vistos));
-            }
-        }
-        
-        setExito(true);
-        setTimeout(() => { navigate('/dashboard'); }, 2200);
-      } else {
-        const errorData = await respuesta.json();
-        alert(`Error: ${errorData.message || errorData.error || 'El servidor rechazó la petición'}`);
-        setModalOpen(false);
+      if (!resAccion.ok) {
+        const errorData = await resAccion.json();
+        throw new Error(errorData.message || 'El servidor rechazó la acción sobre el sitio.');
       }
+
+      const idColaborador = sitio.idusuario || sitio.colaborador_id;
+      
+      if (idColaborador) {
+          const urlNotificacion = solicitudOriginal?.idmensaje 
+              ? 'http://100.123.6.123:8000/api/admin/solicitud/responder' 
+              : 'http://100.123.6.123:8000/api/colaborador/solicitud/enviar'; 
+
+          const payloadNotificacion = {
+              idpublicacion: id,
+              remitente_id: sesionActiva.idusuario,
+              destinatario_id: idColaborador,
+              accion: accionTipo === 'aprobado' ? 'aprobar' : 'rechazar',
+              comentarios: accionTipo === 'aprobado' 
+                  ? "Tu sitio ha sido revisado y activado. Ya es visible para los turistas." 
+                  : "Tu sitio ha sido desactivado o rechazado. Revisa tus propuestas."
+          };
+
+          if (solicitudOriginal?.idmensaje) {
+              payloadNotificacion.respuesta_a = solicitudOriginal.idmensaje;
+          }
+
+          await fetch(urlNotificacion, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+              body: JSON.stringify(payloadNotificacion)
+          });
+      }
+
+      if (solicitudOriginal?.idmensaje) {
+          const vistos = JSON.parse(localStorage.getItem('solicitudes_vistas') || '[]');
+          if (!vistos.includes(solicitudOriginal.idmensaje)) {
+              vistos.push(solicitudOriginal.idmensaje);
+              localStorage.setItem('solicitudes_vistas', JSON.stringify(vistos));
+          }
+      }
+      
+      setExito(true);
+      setTimeout(() => { navigate('/dashboard'); }, 2200);
+
     } catch (error) {
-      alert("Error de conexión. Verifica que el servidor esté activo.");
+      alert(`Error: ${error.message}`);
       setModalOpen(false);
     } finally { setProcesando(false); }
   };
@@ -160,7 +262,7 @@ export default function AnalisisDestino() {
               {!exito ? (
                 <>
                     <h2 className="text-xl font-black uppercase tracking-widest italic animate-in slide-in-from-top-4">
-                    {accionTipo === 'aprobado' ? '¿Confirmar Publicación?' : '¿Desactivar Sitio?'}
+                    {accionTipo === 'aprobado' ? '¿Confirmar Acción?' : '¿Desactivar Sitio?'}
                     </h2>
                     {solicitudOriginal && (
                         <p className="text-[10px] font-bold mt-2 bg-white/20 inline-block px-3 py-1 rounded-full uppercase tracking-widest animate-in fade-in slide-in-from-bottom-2">
@@ -205,7 +307,9 @@ export default function AnalisisDestino() {
           <button onClick={() => navigate('/dashboard')} className="text-slate-400 hover:text-blue-600 font-black uppercase text-[10px] tracking-widest transition-all">← VOLVER AL PANEL</button>
           <div className="flex gap-4">
             <button onClick={() => solicitarGestion('rechazado')} className="px-8 py-4 bg-slate-100 text-red-500 font-black uppercase text-[10px] rounded-2xl hover:bg-red-50 transition-all">Desactivar / Rechazar</button>
-            <button onClick={() => solicitarGestion('aprobado')} className="px-10 py-4 bg-green-500 text-white font-black uppercase text-[10px] rounded-2xl shadow-xl shadow-green-100 hover:bg-green-600 transition-all">Aprobar y Publicar</button>
+            <button onClick={() => solicitarGestion('aprobado')} className="px-10 py-4 bg-green-500 text-white font-black uppercase text-[10px] rounded-2xl shadow-xl shadow-green-100 hover:bg-green-600 transition-all">
+                {origenDatos === 'preformularios' ? 'Aprobar y Publicar' : 'Activar Publicación'}
+            </button>
           </div>
         </div>
       </div>
@@ -213,20 +317,30 @@ export default function AnalisisDestino() {
       <div className="max-w-5xl mx-auto mt-12 px-8 space-y-12">
         {/* INFO COLABORADOR */}
         <section className="bg-slate-900 rounded-[2.5rem] p-10 text-white shadow-2xl relative overflow-hidden">
-          <div className="relative z-10">
-            <h4 className="text-blue-400 text-[10px] font-black uppercase tracking-[0.3em] mb-2">Propuesta enviada por:</h4>
-            <p className="text-4xl font-black italic uppercase leading-none">{sitio.nombre_colaborador || "Usuario SV"}</p>
-            <p className="text-[10px] font-bold text-blue-200 mt-4 opacity-50 italic">FECHA DE ENVIO: {sitio.fecha}</p>
+          <div className="relative z-10 flex justify-between items-start">
+            <div>
+                <h4 className="text-blue-400 text-[10px] font-black uppercase tracking-[0.3em] mb-2">Propuesta enviada por:</h4>
+                <p className="text-4xl font-black italic uppercase leading-none">{sitio.nombre_colaborador || "Usuario SV"}</p>
+                <p className="text-[10px] font-bold text-blue-200 mt-4 opacity-50 italic">FECHA DE ENVIO: {sitio.fecha || sitio.creado_en?.split('T')[0]}</p>
+            </div>
+            <div className={`px-4 py-2 rounded-full text-[9px] font-black tracking-widest uppercase border ${origenDatos === 'preformularios' ? 'bg-blue-600/20 text-blue-300 border-blue-400/30' : 'bg-green-500/20 text-green-400 border-green-500/30'}`}>
+                {origenDatos === 'preformularios' ? 'NUEVO SITIO' : 'ACTUALIZACIÓN'}
+            </div>
           </div>
           <div className="absolute right-[-20px] bottom-[-20px] text-white/5 text-8xl font-black uppercase italic select-none">ID: {id.split('-')[0]}</div>
         </section>
 
-        {/* NOMBRE */}
+        {/* NOMBRE Y CLASIFICACIÓN */}
         <section className="bg-white rounded-[3rem] p-12 border border-slate-200 shadow-sm">
-          <div className="flex flex-col gap-2 border-b pb-8 border-slate-100 mb-8">
+          <div className="flex flex-col gap-4 border-b pb-8 border-slate-100 mb-8">
             <h2 className="text-6xl font-black text-slate-800 italic uppercase leading-none tracking-tighter">{sitio.nombre}</h2>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <span className="bg-blue-600 text-white px-4 py-1 rounded-full text-[9px] font-black uppercase tracking-widest italic">{sitio.departamento}</span>
+              
+              {sitio.clasificacion && sitio.clasificacion[0] && (
+                <span className="bg-emerald-500 text-white px-4 py-1 rounded-full text-[9px] font-black uppercase tracking-widest italic shadow-sm">{sitio.clasificacion[0]}</span>
+              )}
+
               <p className="text-sm font-black text-blue-600/60 uppercase tracking-widest">{sitio.municipio} — {sitio.distrito}</p>
             </div>
           </div>
@@ -236,7 +350,7 @@ export default function AnalisisDestino() {
           </div>
         </section>
 
-        {/* TARIFAS */}
+        {/* TARIFAS Y HORARIOS */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="bg-white rounded-[3rem] p-10 border border-slate-200 shadow-sm">
             <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-widest mb-8 border-b pb-4 border-slate-50 italic">Tarifas Reportadas</h4>
@@ -272,22 +386,62 @@ export default function AnalisisDestino() {
           </div>
         </section>
 
-        {/* POLÍTICAS */}
-        <section className="bg-white rounded-[3rem] p-12 border border-slate-200 shadow-sm">
-          <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-widest mb-10 italic">Reglamento y Políticas</h4>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {listaPermisos.map(p => (
-              <div key={p.id} className={`p-6 rounded-[2rem] border transition-all ${sitio.politicas?.[p.id] ? 'bg-green-50/50 border-green-100' : 'bg-red-50/50 border-red-100 opacity-60'}`}>
-                <p className={`text-[9px] font-black uppercase italic mb-2 ${sitio.politicas?.[p.id] ? 'text-green-700' : 'text-red-700'}`}>{p.label}</p>
-                <span className="text-xs font-black">{sitio.politicas?.[p.id] ? 'SÍ' : 'NO'}</span>
-              </div>
-            ))}
+        {/* 🚀 EL NUEVO BLOQUE MONSTRUOSO DE CARACTERÍSTICAS 🚀 */}
+        <section className="bg-white rounded-[3rem] p-12 border border-slate-200 shadow-sm space-y-12">
+          
+          {/* BLOQUE A: Reglas y Permisos */}
+          <div>
+            <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-widest mb-6 italic border-b border-slate-100 pb-3">A. Reglas y Permisos</h4>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {reglasPermisos.map(p => {
+                const tienePermiso = sitio.politicas?.[p.id];
+                return (
+                  <div key={p.id} className={`p-4 rounded-[1.5rem] border transition-all ${tienePermiso ? 'bg-green-50 border-green-200 shadow-sm' : 'bg-red-50/40 border-red-100 opacity-60'}`}>
+                    <p className={`text-[9px] font-black uppercase italic mb-1 ${tienePermiso ? 'text-green-700' : 'text-red-700'}`}>{p.label}</p>
+                    <span className="text-xs font-black text-slate-800">{tienePermiso ? 'SÍ' : 'NO'}</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
+
+          {/* BLOQUE B: Amenidades */}
+          <div>
+            <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-widest mb-6 italic border-b border-slate-100 pb-3">B. Servicios y Amenidades</h4>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {serviciosAmenidades.map(p => {
+                const tieneServicio = sitio.politicas?.[p.id];
+                return (
+                  <div key={p.id} className={`p-4 rounded-[1.5rem] border transition-all ${tieneServicio ? 'bg-blue-50 border-blue-200 shadow-sm' : 'bg-slate-50 border-slate-200 opacity-50'}`}>
+                    <p className={`text-[9px] font-black uppercase italic mb-1 ${tieneServicio ? 'text-blue-700' : 'text-slate-400'}`}>{p.label}</p>
+                    <span className="text-xs font-black text-slate-800">{tieneServicio ? 'SÍ' : 'NO'}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* BLOQUE C: Actividades */}
+          <div>
+            <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-widest mb-6 italic border-b border-slate-100 pb-3">C. Actividades Destacadas</h4>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {actividadesDestacadas.map(p => {
+                const tieneActividad = sitio.politicas?.[p.id];
+                return (
+                  <div key={p.id} className={`p-4 rounded-[1.5rem] border transition-all ${tieneActividad ? 'bg-emerald-50 border-emerald-200 shadow-sm' : 'bg-slate-50 border-slate-200 opacity-50'}`}>
+                    <p className={`text-[9px] font-black uppercase italic mb-1 ${tieneActividad ? 'text-emerald-700' : 'text-slate-400'}`}>{p.label}</p>
+                    <span className="text-xs font-black text-slate-800">{tieneActividad ? 'SÍ' : 'NO'}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
         </section>
 
         {/* GALERÍA */}
         <section className="space-y-6">
-          <GaleriaEvidencia imagenes={sitio.lote_imagenes} imagenPrincipal={sitio.imagen} />
+          <GaleriaEvidencia imagenes={sitio.lote_imagenes || sitio.imagenes} imagenPrincipal={sitio.imagen} />
         </section>
 
         {/* MAPA */}

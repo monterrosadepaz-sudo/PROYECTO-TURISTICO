@@ -72,7 +72,7 @@ export default function Navbar({ alClickIngresar, isLogged, rol, alCerrarSesion,
     };
 
     fetchNotificaciones();
-    const intervalo = setInterval(fetchNotificaciones, 30000); 
+    const intervalo = setInterval(fetchNotificaciones, 60000); 
     return () => clearInterval(intervalo);
   }, [isLogged, datosUsuario.idusuario, rol]);
 

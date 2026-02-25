@@ -1,70 +1,12 @@
 import React, { useState, useEffect } from 'react'; 
 import { useNavigate, useParams } from 'react-router-dom';
+import axios from 'axios';
 import MapaFormulario from './MapaFormulario'; 
-
-// --- BASE DE DATOS TERRITORIAL ---
-const divisionTerritorial = {
-  "Ahuachapán": { "Ahuachapán Norte": ["Atiquizaya", "El Refugio", "San Lorenzo", "Turín"], "Ahuachapán Centro": ["Ahuachapán", "Apaneca", "Concepción de Ataco", "Tacuba"], "Ahuachapán Sur": ["Guaymango", "Jujutla", "San Francisco Menendez", "San Pedro Puxtla"] },
-  "San Salvador": { "San Salvador Norte": ["Aguilares", "El Paisnal", "Guazapa"], "San Salvador Oeste": ["Apopa", "Nejapa"], "San Salvador Este": ["llopango", "San Martín", "Soyapango", "Tonacatepeque"], "San Salvador Centro": ["Ayutuxtepeque", "Mejicanos", "San Salvador", "Cuscatancingo", "Ciudad Delgado"], "San Salvador Sur": ["Panchimalco", "Rosario de Mora", "San Marcos", "Santo Tomás", "Santiago Texacuangos"] },
-  "La Libertad": { "La Libertad Norte": ["Quezaltepeque", "San Matías", "San Pablo Tacachico"], "La Libertad Centro": ["San Juan Opico", "Ciudad Arce"], "La Libertad Oeste": ["Colón", "Jayaque", "Sacacoyo", "Tepecoyo", "Talnique"], "La Libertad Este": ["Antiguo Cuscatlán", "Huizucar", "Nuevo Cuscatlán", "San José Villanueva", "Zaragoza"], "La Libertad Costa": ["Chiltuipán", "Jicalapa", "La Libertad", "Tamanique", "Teotepeque"], "La Libertad Sur": ["Comasagua", "Santa Tecla"] },
-  "Chalatenango": { "Chalatenango Norte": ["La Palma", "Citalá", "San Ignacio"], "Chalatenango Centro": ["Nueva Concepción", "Tejutla", "La Reina", "Agua Caliente", "Dulce Nombre de María", "El Paraíso", "San Francisco Morazán", "San Rafael", "Santa Rita", "San Fernando"], "Chalatenango Sur": ["Chalatenango", "Arcatao", "Azacualpa", "Comalapa", "Concepción Quezaltepeque", "El Carrizal", "La Laguna", "Las Vueltas", "Nombre de Jesús", "Nueva Trinidad", "Ojos de Agua", "Potonico", "San Antonio de La Cruz", "San Antonio Los Ranchos", "San Francisco Lempa", "San Isidro Labrador", "San José Cancasque", "San Miguel de Mercedes", "San José Las Flores", "San Luis del Carmen"] },
-  "Cuscatlán": { "Cuscatlán Norte": ["Suchitoto", "San José Guayabal", "Oratorio de Concepción", "San Bartolomé Perulapán", "San Pedro Perulapán"], "Cuscatlán Sur": ["Cojutepeque", "San Rafael Cedros", "Candelaria", "Monte San Juan", "El Carmen", "San Cristóbal", "Santa Cruz Michapa", "San Ramón", "El Rosario", "Santa Cruz Analquito", "Tenancingo"] },
-  "Cabañas": { "Cabañas Este": ["Sensuntepeque", "Victoria", "Dolores", "Guacotecti", "San Isidro"], "Cabañas Oeste": ["llobasco", "Tejutepeque", "Jutiapa", "Cinquera"] },
-  "La Paz": { "La Paz Oeste": ["Cuyultitán", "Olocuilta", "San Juan Talpa", "San Luis Talpa", "San Pedro Masahuat", "Tapalhuaca", "San Francisco Chinameca"], "La Paz Centro": ["El Rosario", "Jerusalén", "Mercedes La Ceiba", "Paraíso de Osorio", "San Antonio Masahuat", "San Emigdio", "San Juan Tepezontes", "San Luis La Herradura", "San Miguel Tepezontes", "San Pedro Nonualco", "Santa María Ostuma", "Santiago Nonualco"], "La Paz Este": ["San Juan Nonualco", "San Rafael Obrajuelo", "Zacatecoluca"] },
-  "La Unión": { "La Unión Norte": ["Anamorós", "Bolivar", "Concepción de Oriente", "El Sauce", "Lislique", "Nueva Esparta", "Pasaquina", "Polorós", "San José La Fuente", "Santa Rosa de Lima"], "La Unión Sur": ["Conchagua", "El Carmen", "lntipucá", "La Unión", "Meanguera del Golfo", "San Alejo", "Yayantique", "Yucuaiquín"] },
-  "Usulután": { "Usulután Norte": ["Santiago de María", "Alegría", "Berlín", "Mercedes Umana", "Jucuapa", "El Triunfo", "Estanzuelas", "San Buenaventura", "Nueva Granada"], "Usulután Este": ["Usulután", "Jucuarán", "San Dionisio", "Concepción Batres", "Santa María", "Ozatlán", "Tecapán", "Santa Elena", "California", "Ereguayquín"], "Usulután Oeste": ["Jiquilisco", "Puerto El Triunfo", "San Agustín", "San Francisco Javier"] },
-  "Sonsonate": { "Sonsonate Norte": ["Juayúa", "Nahuizalco", "Salcoatitán", "Santa Catarina Masahuat"], "Sonsonate Centro": ["Sonsonate", "Sonzacate", "Nahulingo", "San Antonio del Monte", "Santo Domingo de Guzmán"], "Sonsonate Este": ["Izalco", "Armenia", "Caluco", "San Julián", "Cuisnahuat", "Santa Isabel lshuatán"], "Sonsonate Oeste": ["Acajutla"] },
-  "Santa Ana": { "Santa Ana Norte": ["Masahuat", "Metapán", "Santa Rosa Guachipilín", "Texistepeque"], "Santa Ana Centro": ["Santa Ana"], "Santa Ana Este": ["Coatepeque", "El Congo"], "Santa Ana Oeste": ["Candelaria de la Frontera", "Chalchuapa", "El Porvenir", "San Antonio Pajonal", "San Sebastián Salitrillo", "Santiago de La Frontera"] },
-  "San Vicente": { "San Vicente Norte": ["Apastepeque", "Santa Clara", "San Ildefonso", "San Esteban Catarina", "San Sebastián", "San Lorenzo", "Santo Domingo"], "San Vicente Sur": ["San Vicente", "Guadalupe", "Verapaz", "Tepetitán", "Tecoluca", "San Cayetano lstepeque"] },
-  "San Miguel": { "San Miguel Norte": ["Ciudad Barrios", "Sesori", "Nuevo Edén de San Juan", "San Gerardo", "San Luis de La Reina", "Carolina", "San Antonio del Mosco", "Chapeltique"], "San Miguel Centro": ["San Miguel", "Comacarán", "Uluazapa", "Moncagua", "Quelepa", "Chirilagua"], "San Miguel Oeste": ["Chinameca", "Nueva Guadalupe", "Lolotique", "San Jorge", "San Rafael Oriente", "El Tránsito"] },
-  "Morazán": { "Morazán Norte": ["Arambala", "Cacaopera", "Corinto", "El Rosario", "Joateca", "Jocoaitique", "Meanguera", "Perquín", "San Fernando", "San Isidro", "Torola"], "Morazán Sur": ["Chilanga", "Delicias de Concepción", "El Divisadero", "Gualococti", "Guatajiagua", "Jocoro", "Lolotiquillo", "Osicala", "San Carlos", "San Francisco Gotera", "San Simón", "Sensembra", "Sociedad", "Yamabal", "Yoloaiquín"] }
-};
-
-const ModalExito = ({ visible, alCerrar, correo, esEdicion }) => {
-  if (!visible) return null;
-  return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-blue-900/80 backdrop-blur-md animate-in fade-in duration-500">
-      <div className="bg-white w-full max-w-sm rounded-[3rem] p-10 text-center shadow-2xl border border-blue-100 italic">
-        <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-6 shadow-sm font-black">✓</div>
-        <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tighter mb-4">
-            {esEdicion ? '¡Cambios Guardados!' : '¡Propuesta Enviada!'}
-        </h2>
-        <p className="text-slate-500 text-[11px] leading-relaxed mb-8 uppercase">
-          {esEdicion ? 'Tu destino ha sido actualizado correctamente.' : 'Tu destino ha sido registrado correctamente.'} 
-          <span className="block text-blue-600 font-black mt-2 underline decoration-blue-100 underline-offset-4">{correo}</span>
-        </p>
-        <button onClick={alCerrar} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl shadow-lg shadow-blue-200 text-[10px] uppercase tracking-widest transition-all active:scale-95">
-            {esEdicion ? 'VOLVER A MIS PROPUESTAS' : 'VOLVER AL MAPA'}
-        </button>
-      </div>
-    </div>
-  );
-};
-
-// --- NUEVO MODAL DE CONFIRMACIÓN ELEGANTE ---
-const ModalConfirmacion = ({ visible, alCerrar, alConfirmar, cantidadFotos }) => {
-  if (!visible) return null;
-  return (
-    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-sm animate-in fade-in duration-300">
-      <div className="bg-white w-full max-w-md rounded-[2.5rem] p-8 text-center shadow-2xl border border-slate-100 relative">
-        <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 shadow-sm font-black">?</div>
-        <h3 className="text-xl font-black text-slate-800 uppercase tracking-tighter mb-2">¿Estás seguro?</h3>
-        <p className="text-slate-500 text-[11px] font-bold uppercase tracking-widest leading-relaxed mb-6">
-          Estás a punto de enviar la información con <span className="text-blue-600 font-black">{cantidadFotos} archivos adjuntos</span>. 
-          <br/>Por favor confirma que la información es correcta.
-        </p>
-        <div className="flex gap-3">
-            <button onClick={alCerrar} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-400 font-black py-4 rounded-2xl text-[9px] uppercase tracking-widest transition-all">
-                Revisar
-            </button>
-            <button onClick={alConfirmar} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl shadow-lg shadow-blue-200 text-[9px] uppercase tracking-widest transition-all active:scale-95">
-                Sí, Enviar
-            </button>
-        </div>
-      </div>
-    </div>
-  );
-};
+import ModalProgreso from './ModalProgreso'; 
+import ModalExito from './ModalExito'; 
+import ModalConfirmacion from './ModalConfirmacion';
+import { divisionTerritorial } from '../data/DatosElSalvador'; 
+import { categoriasDestino, reglasPermisos, serviciosAmenidades, actividadesDestacadas } from '../data/OpcionesDestino';
 
 export default function FormularioPublicar() {
   const navigate = useNavigate();
@@ -72,44 +14,42 @@ export default function FormularioPublicar() {
 
   const sesionActiva = JSON.parse(localStorage.getItem('usuarioLogueado')) || {
     idusuario: "eec174fd-7093-4efe-82a6-a7828ccf1703", 
-    nombre: "Miguel Sanchez",
-    correo: "miguelpacas796@gmail.com",
-    rol: "Colaborador",
-    telefono: "00000000"
+    nombre: "Miguel Sanchez", correo: "miguelpacas796@gmail.com", rol: "Colaborador", telefono: "00000000"
   };
 
   const [correoBD, setCorreoBD] = useState(sesionActiva.correo);
   const [mostrarExito, setMostrarExito] = useState(false); 
-  // ESTADO NUEVO PARA EL MODAL DE CONFIRMACIÓN
   const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false); 
   
-  const [archivosFotos, setArchivosFotos] = useState([]); 
-  const [previews, setPreviews] = useState([]); 
+  const [isSubiendo, setIsSubiendo] = useState(false);
+  const [progresoSubida, setProgresoSubida] = useState(0);
+  
+  const [fotosVista, setFotosVista] = useState([]); 
   const [cargando, setCargando] = useState(false);
   const [coordManual, setCoordManual] = useState({ lat: '', lng: '' });
+
+  // Inicializamos todas las opciones en false dinámicamente
+  const estadoInicialPermisos = {};
+  [...reglasPermisos, ...serviciosAmenidades, ...actividadesDestacadas].forEach(item => {
+      estadoInicialPermisos[item.id] = false;
+  });
 
   const [formData, setFormData] = useState({
     nombreSitio: '', departamento: '', municipio: '', distrito: '',   
     ubicacion: null, categoria: '', descripcion: '',
     precios: { adultos: '', ninos: '', terceraEdad: '' },
     horarios: {
-      lunes: { abierto: false, inicio: '08:00', fin: '17:00' },
-      martes: { abierto: false, inicio: '08:00', fin: '17:00' },
-      miercoles: { abierto: false, inicio: '08:00', fin: '17:00' },
-      jueves: { abierto: false, inicio: '08:00', fin: '17:00' },
-      viernes: { abierto: false, inicio: '08:00', fin: '17:00' },
-      sabado: { abierto: false, inicio: '08:00', fin: '17:00' },
+      lunes: { abierto: false, inicio: '08:00', fin: '17:00' }, martes: { abierto: false, inicio: '08:00', fin: '17:00' },
+      miercoles: { abierto: false, inicio: '08:00', fin: '17:00' }, jueves: { abierto: false, inicio: '08:00', fin: '17:00' },
+      viernes: { abierto: false, inicio: '08:00', fin: '17:00' }, sabado: { abierto: false, inicio: '08:00', fin: '17:00' },
       domingo: { abierto: false, inicio: '08:00', fin: '17:00' },
     },
-    avisoFestivos: false,
-    permisos: {
-      comida: false, bebidasGaseosas: false, bebidasAlcoholicas: false,
-      mascotas: false, mesasSillas: false, hamacas: false,
-      parrillasCocinas: false, armasFuego: false
-    }
+    permisos: estadoInicialPermisos
   });
 
-  // Carga de datos para edición (se mantiene igual)
+  const pesoTotalMB = (fotosVista.reduce((acc, foto) => acc + (foto.file ? foto.file.size : 0), 0) / (1024 * 1024)).toFixed(2);
+  const esUnVideo = (foto) => foto.file ? foto.file.type.startsWith('video/') : foto.url.match(/\.(mp4|mov|avi|wmv|webm)$/i);
+
   useEffect(() => {
     const cargarDatosEdicion = async () => {
         if (!id) return; 
@@ -118,6 +58,10 @@ export default function FormularioPublicar() {
             const res = await fetch(`http://100.123.6.123:8000/api/preformularios/detalles/${id}`);
             if (res.ok) {
                 const data = await res.json();
+                
+                // Mapeamos lo que traiga Julio y si falta algo lo ponemos en false
+                const permisosCargados = { ...estadoInicialPermisos, ...data.politicas_obj };
+
                 setFormData({
                     nombreSitio: data.nombre,
                     departamento: data.departamento,
@@ -128,20 +72,17 @@ export default function FormularioPublicar() {
                     descripcion: data.descripcion,
                     precios: JSON.parse(data.detalles).tarifas_desglosadas,
                     horarios: procesarHorariosDesdeAPI(JSON.parse(data.horarios)),
-                    permisos: {
-                        comida: data.politicas_obj.traer_comida,
-                        bebidasGaseosas: data.politicas_obj.gaseosas_agua,
-                        bebidasAlcoholicas: data.politicas_obj.alcohol,
-                        mascotas: data.politicas_obj.mascotas,
-                        mesasSillas: data.politicas_obj.mesas_sillas,
-                        hamacas: data.politicas_obj.hamacas,
-                        parrillasCocinas: data.politicas_obj.parrillas_cocinas,
-                        armasFuego: data.politicas_obj.armas_de_fuego
-                    }
+                    permisos: permisosCargados // Magia pura
                 });
                 setCoordManual({ lat: data.latitud, lng: data.longitud });
+                
                 if (data.imagenes) {
-                    setPreviews(data.imagenes.map(img => `http://100.123.6.123:8000/storage/preformularios/${img.url_imagen}`));
+                    const fotosPrevias = data.imagenes.map(img => ({
+                        url: `http://100.123.6.123:8000/storage/preformularios/${img.url_imagen}`,
+                        is360: img.url_imagen.includes('-360'), 
+                        isNew: false, file: null
+                    }));
+                    setFotosVista(fotosPrevias);
                 }
             }
         } catch (error) { console.error("Error al cargar datos:", error); } finally { setCargando(false); }
@@ -161,7 +102,7 @@ export default function FormularioPublicar() {
     return nuevoHorario;
   };
 
- useEffect(() => {
+  useEffect(() => {
     const obtenerCorreoOficial = async () => {
       if (!sesionActiva.idusuario) return;
       try {
@@ -170,12 +111,11 @@ export default function FormularioPublicar() {
           const datos = await respuesta.json();
           if (datos.email) setCorreoBD(datos.email);
         }
-      } catch (error) { console.error("Fallo de sincronización con el servidor."); }
+      } catch (error) {}
     };
     obtenerCorreoOficial();
   }, [sesionActiva.idusuario]);
 
-  // Handlers normales
   const manejarCambioUbicacion = (e) => {
     const { name, value } = e.target;
     if (name === 'departamento') setFormData({ ...formData, departamento: value, municipio: '', distrito: '' });
@@ -190,11 +130,11 @@ export default function FormularioPublicar() {
       return resultado;
   };
 
-  const generarNombreImagen = (archivo, objetivo, carpeta, loteID, indice) => {
+  const generarNombreImagen = (archivo, loteID, indice) => {
     const hoy = new Date();
     const fechaCodificada = `${String(hoy.getDate()).padStart(2, '0')}${String(hoy.getMonth() + 1).padStart(2, '0')}${hoy.getFullYear()}`;
-    const extension = archivo.name.split('.').pop();
-    return `0000${fechaCodificada}${objetivo}${carpeta}-${loteID}-${indice}.${extension}`;
+    const extension = archivo.name.split('.').pop().toLowerCase(); 
+    return `0000${fechaCodificada}preformulario-${loteID}-${indice}.${extension}`;
   };
 
   const manejarCambio = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -207,16 +147,16 @@ export default function FormularioPublicar() {
 
   const manejarArchivos = (e) => {
     const nuevosArchivos = Array.from(e.target.files);
-    if (archivosFotos.length + nuevosArchivos.length > 10) return alert("Máximo 10 fotografías.");
-    const nuevasPreviews = nuevosArchivos.map(file => URL.createObjectURL(file));
-    setArchivosFotos(prev => [...prev, ...nuevosArchivos]);
-    setPreviews(prev => [...prev, ...nuevasPreviews]);
+    if (fotosVista.length + nuevosArchivos.length > 20) return alert("Máximo 20 archivos permitidos.");
+    
+    const nuevasFotosConfig = nuevosArchivos.map(file => ({
+        url: URL.createObjectURL(file), is360: false, isNew: true, file: file
+    }));
+    setFotosVista(prev => [...prev, ...nuevasFotosConfig]);
   };
 
-  const eliminarFoto = (index) => {
-    setArchivosFotos(prev => prev.filter((_, i) => i !== index));
-    setPreviews(prev => prev.filter((_, i) => i !== index));
-  };
+  const eliminarFoto = (index) => setFotosVista(prev => prev.filter((_, i) => i !== index));
+  const toggle360 = (index) => setFotosVista(prev => prev.map((foto, i) => i === index ? { ...foto, is360: !foto.is360 } : foto));
 
   const setUbicacion = (coords) => {
     setFormData({ ...formData, ubicacion: coords });
@@ -229,22 +169,19 @@ export default function FormularioPublicar() {
     else alert("Ingresa coordenadas válidas.");
   };
 
-  // --- PASO 1: ACTIVAR MODAL ---
   const manejarEnvio = (e) => {
     e.preventDefault();
     if (!formData.ubicacion) return alert("Selecciona ubicación en el mapa.");
-    if (archivosFotos.length === 0 && previews.length === 0) return alert("Sube al menos una fotografía.");
-    
-    // Abrimos el modal de confirmación en lugar de enviar directo
+    if (fotosVista.length === 0) return alert("Sube al menos un archivo.");
     setMostrarConfirmacion(true);
   };
 
-  // --- PASO 2: PROCESO DE ENVÍO REAL (Se ejecuta al confirmar) ---
   const procesarEnvioConfirmado = async () => {
-    setMostrarConfirmacion(false); // Cerramos el modal
-    setCargando(true);
+    setMostrarConfirmacion(false); 
+    setIsSubiendo(true); 
+    setProgresoSubida(0); 
+
     const data = new FormData();
-    
     if (id) data.append('_method', 'PUT');
 
     data.append('nombre', formData.nombreSitio); 
@@ -259,17 +196,8 @@ export default function FormularioPublicar() {
     data.append('fecha', new Date().toISOString().split('T')[0]); 
     data.append('personas', 1); 
 
-    const politicasJulio = {
-      traer_comida: formData.permisos.comida,
-      gaseosas_agua: formData.permisos.bebidasGaseosas,
-      alcohol: formData.permisos.bebidasAlcoholicas,
-      mascotas: formData.permisos.mascotas,
-      mesas_sillas: formData.permisos.mesasSillas,
-      hamacas: formData.permisos.hamacas,
-      parrillas_cocinas: formData.permisos.parrillasCocinas,
-      armas_de_fuego: formData.permisos.armasFuego
-    };
-    data.append('politicas', JSON.stringify(politicasJulio));
+    // Enviamos el objeto de permisos completo, Julio lo guardará tal cual en su JSON
+    data.append('politicas', JSON.stringify(formData.permisos));
 
     const horariosJulio = {};
     Object.keys(formData.horarios).forEach(dia => {
@@ -281,53 +209,52 @@ export default function FormularioPublicar() {
     data.append('detalles', JSON.stringify({ tarifas_desglosadas: formData.precios }));
     data.append('usuario', sesionActiva.idusuario);
 
-    // --- LÓGICA DE FOTOS POR LOTE ---
     const loteID = generarIDLote(); 
+    let indiceArchivosNuevos = 0; 
 
-    archivosFotos.forEach((archivo, index) => {
-      const nombreCodificado = generarNombreImagen(archivo, "preformulario", "preformularios", loteID, index + 1);
-      const archivoBautizado = new File([archivo], nombreCodificado, { type: archivo.type });
-      data.append(`imagenes[${index}]`, archivoBautizado);
+    fotosVista.forEach((foto) => {
+        if (foto.isNew && foto.file) {
+            const archivo = foto.file;
+            let nombreCodificado = generarNombreImagen(archivo, loteID, indiceArchivosNuevos + 1);
+            if (foto.is360) {
+                const partes = nombreCodificado.split('.');
+                const extension = partes.pop();
+                nombreCodificado = `${partes.join('.')}-360.${extension}`;
+            }
+            data.append(`imagenes[${indiceArchivosNuevos}]`, new File([archivo], nombreCodificado, { type: archivo.type }));
+            indiceArchivosNuevos++;
+        }
     });
 
     try {
       const urlBase = 'http://100.123.6.123:8000/api/preformularios';
       const urlFinal = id ? `${urlBase}/actualizar/${id}` : `${urlBase}/crear`;
       
-      const respuesta = await fetch(urlFinal, {
-        method: 'POST', 
+      const respuesta = await axios.post(urlFinal, data, {
         headers: { 'Accept': 'application/json' },
-        body: data,
+        onUploadProgress: (progressEvent) => {
+            const porcentaje = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setProgresoSubida(porcentaje);
+        }
       });
 
-      if (respuesta.ok) setMostrarExito(true);
-      else {
-        const resErr = await respuesta.json();
-        throw new Error(resErr.message || "Fallo en validación.");
+      if (respuesta.status === 200 || respuesta.status === 201) {
+          setTimeout(() => {
+              setIsSubiendo(false);
+              setMostrarExito(true);
+          }, 500); 
       }
     } catch (error) {
-      console.log("Error: " + error.message);
-    } finally {
-      setCargando(false);
+      setIsSubiendo(false);
+      alert("Error al subir: " + (error.response?.data?.message || error.message));
     }
   };
 
   return (
     <div className="min-h-screen py-12 px-4 flex justify-center items-start bg-slate-100/50 italic text-left">
-      <ModalExito 
-        visible={mostrarExito} 
-        alCerrar={() => navigate(id ? "/mis-propuestas" : "/")} 
-        correo={correoBD} 
-        esEdicion={!!id} 
-      />
-      
-      {/* MODAL DE CONFIRMACIÓN */}
-      <ModalConfirmacion 
-        visible={mostrarConfirmacion} 
-        alCerrar={() => setMostrarConfirmacion(false)} 
-        alConfirmar={procesarEnvioConfirmado} 
-        cantidadFotos={archivosFotos.length} 
-      />
+      <ModalExito visible={mostrarExito} alCerrar={() => navigate(id ? "/mis-propuestas" : "/")} correo={correoBD} esEdicion={!!id} />
+      <ModalConfirmacion visible={mostrarConfirmacion} alCerrar={() => setMostrarConfirmacion(false)} alConfirmar={procesarEnvioConfirmado} cantidadFotos={fotosVista.filter(f => f.isNew).length} pesoTotal={pesoTotalMB} />
+      <ModalProgreso visible={isSubiendo} porcentaje={progresoSubida} mensaje="Subiendo archivos al servidor..." />
       
       <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl border border-slate-200 overflow-hidden text-slate-800">
         <div className="bg-blue-800 p-10 text-white relative z-[50]">
@@ -335,10 +262,9 @@ export default function FormularioPublicar() {
             {id ? 'Editar Destino' : 'Publicar Nuevo Destino'}
           </h3>
           <p className="text-blue-100 text-[10px] mt-3 uppercase font-black tracking-[0.2em] text-center italic">Sesión Activa: {sesionActiva.rol}</p>
-          <button onClick={() => navigate(-1)} className="absolute top-8 right-8 bg-white/10 hover:bg-white/20 p-3 rounded-2xl transition-all font-black">✕</button>
+          <button type="button" onClick={() => navigate(-1)} className="absolute top-8 right-8 bg-white/10 hover:bg-white/20 p-3 rounded-2xl transition-all font-black">✕</button>
         </div>
 
-        {/* NOTA: El onSubmit ahora llama a manejarEnvio, que solo abre el modal */}
         <form onSubmit={manejarEnvio} className="p-10 space-y-12">
           
           <div className="space-y-6">
@@ -398,32 +324,60 @@ export default function FormularioPublicar() {
             </div>
           </div>
 
-          <div className="space-y-8">
-            <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-[0.2em]">03. Clasificación y Políticas</h4>
+          <div className="space-y-12">
+            <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-[0.2em] border-b border-slate-100 pb-4">03. Clasificación del Destino</h4>
+            
+            {/* NUEVO BLOQUE: CLASIFICACIÓN */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {['Playa', 'Montaña', 'Pueblo', 'Ciudad', 'Balneario', 'Parque'].map(cat => (
-                <label key={cat} className={`flex items-center justify-center p-4 border-2 rounded-2xl cursor-pointer transition-all font-bold text-xs ${formData.categoria === cat ? 'border-blue-600 bg-blue-600 text-white shadow-md' : 'border-slate-100 text-slate-500 bg-slate-50 hover:border-slate-300'}`}>
+              {categoriasDestino.map(cat => (
+                <label key={cat} className={`flex items-center justify-center p-4 border-2 rounded-2xl cursor-pointer transition-all font-bold text-[10px] text-center uppercase tracking-widest ${formData.categoria === cat ? 'border-blue-600 bg-blue-600 text-white shadow-md' : 'border-slate-100 text-slate-500 bg-slate-50 hover:border-slate-300'}`}>
                   <input type="radio" name="categoria" value={cat} checked={formData.categoria === cat} onChange={manejarCambio} className="hidden" required />
-                  {cat.toUpperCase()}
+                  {cat}
                 </label>
               ))}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {[
-                { n: 'comida', l: 'Traer comida' }, { n: 'bebidasGaseosas', l: 'Gaseosas / Agua' },
-                { n: 'bebidasAlcoholicas', l: 'Alcohol' }, { n: 'mascotas', l: 'Mascotas' },
-                { n: 'mesasSillas', l: 'Mesas y sillas' }, { n: 'hamacas', l: 'Hamacas' },
-                { n: 'parrillasCocinas', l: 'Parrillas / Cocinas' }, { n: 'armasFuego', l: 'Armas de fuego' }
-              ].map(item => (
-                <label key={item.n} className="flex items-center gap-3 p-4 bg-slate-50 border border-slate-100 rounded-2xl cursor-pointer hover:bg-white transition-all">
-                  <input type="checkbox" name={item.n} checked={formData.permisos[item.n]} onChange={manejarCheck} className="w-5 h-5 rounded border-slate-300 text-blue-600" />
-                  <span className="text-[10px] font-black uppercase text-slate-700">{item.l}</span>
-                </label>
-              ))}
+
+            {/* NUEVO BLOQUE: REGLAS Y PERMISOS */}
+            <div className="space-y-4 pt-6">
+                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest italic ml-2">A. Reglas y Permisos</p>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {reglasPermisos.map(item => (
+                    <label key={item.id} className="flex items-center gap-3 p-4 bg-slate-50 border border-slate-100 rounded-2xl cursor-pointer hover:bg-white transition-all shadow-sm">
+                    <input type="checkbox" name={item.id} checked={formData.permisos[item.id]} onChange={manejarCheck} className="w-5 h-5 rounded border-slate-300 text-blue-600" />
+                    <span className="text-[9px] font-black uppercase text-slate-700">{item.label}</span>
+                    </label>
+                ))}
+                </div>
+            </div>
+
+            {/* NUEVO BLOQUE: AMENIDADES */}
+            <div className="space-y-4 pt-6">
+                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest italic ml-2">B. Servicios y Amenidades</p>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {serviciosAmenidades.map(item => (
+                    <label key={item.id} className="flex items-center gap-3 p-4 bg-blue-50/30 border border-blue-100/50 rounded-2xl cursor-pointer hover:bg-white transition-all shadow-sm">
+                    <input type="checkbox" name={item.id} checked={formData.permisos[item.id]} onChange={manejarCheck} className="w-5 h-5 rounded border-blue-300 text-blue-600" />
+                    <span className="text-[9px] font-black uppercase text-blue-900">{item.label}</span>
+                    </label>
+                ))}
+                </div>
+            </div>
+
+            {/* NUEVO BLOQUE: ACTIVIDADES */}
+            <div className="space-y-4 pt-6">
+                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest italic ml-2">C. Actividades Destacadas</p>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {actividadesDestacadas.map(item => (
+                    <label key={item.id} className="flex items-center gap-3 p-4 bg-emerald-50/50 border border-emerald-100/50 rounded-2xl cursor-pointer hover:bg-white transition-all shadow-sm">
+                    <input type="checkbox" name={item.id} checked={formData.permisos[item.id]} onChange={manejarCheck} className="w-5 h-5 rounded border-emerald-300 text-emerald-600" />
+                    <span className="text-[9px] font-black uppercase text-emerald-900">{item.label}</span>
+                    </label>
+                ))}
+                </div>
             </div>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-6 border-t border-slate-100 pt-10">
             <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-[0.2em]">04. Horarios y Costos</h4>
             <div className="bg-slate-50 rounded-[2rem] p-6 border border-slate-100 space-y-6 italic text-slate-700">
               <div className="grid grid-cols-1 gap-3">
@@ -473,24 +427,69 @@ export default function FormularioPublicar() {
           </div>
 
           <div className="space-y-4">
-            <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-[0.2em]">06. Fotografía del Destino (MÁX. 10)</h4>
+            <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-[0.2em]">06. Multimedia del Destino (MÁX. 20)</h4>
+            
+            <div className="bg-blue-50 border border-blue-200 rounded-3xl p-6 flex items-start gap-5 shadow-inner relative overflow-hidden group">
+                <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-100 rounded-full opacity-50 group-hover:scale-150 transition-transform duration-700"></div>
+                <div className="bg-blue-600 w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-lg shrink-0 z-10 italic">360°</div>
+                <div className="z-10">
+                    <h5 className="text-blue-800 font-black uppercase text-[11px] tracking-widest mb-1 italic">Tecnología Inmersiva</h5>
+                    <p className="text-blue-600/80 text-[10px] font-bold leading-relaxed">
+                        Si has subido fotografías panorámicas 360°, por favor <span className="font-black underline decoration-2 underline-offset-4">márcalas utilizando el botón "ES 360°"</span> que aparece sobre cada imagen.
+                    </p>
+                </div>
+            </div>
+
             <div className="space-y-4">
-              {previews.length === 0 ? (
+              {fotosVista.length === 0 ? (
+                
                 <label className="flex flex-col items-center justify-center w-full h-72 border-2 border-dashed border-slate-300 rounded-[2.5rem] cursor-pointer bg-slate-50 hover:bg-slate-100 transition-all group shadow-inner">
                   <div className="bg-blue-100 p-5 rounded-full mb-4 text-blue-600 font-black text-2xl shadow-sm group-hover:scale-110 transition-transform italic">↑</div>
-                  <input type="file" accept="image/*" multiple onChange={manejarArchivos} className="hidden" />
-                  <p className="mb-1 text-[11px] text-slate-700 font-black uppercase tracking-widest italic">Seleccionar Archivos</p>
+                  <input type="file" accept="image/*,video/*" multiple onChange={manejarArchivos} className="hidden" />
+                  <p className="mb-1 text-[11px] text-slate-700 font-black uppercase tracking-widest italic">Seleccionar Fotos o Videos</p>
                 </label>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {previews.map((url, index) => (
-                    <div key={index} className="relative h-32 animate-in zoom-in-95">
-                      <img src={url} className="w-full h-full object-cover rounded-2xl border-2 border-white shadow-md" alt="" />
-                      <button type="button" onClick={() => eliminarFoto(index)} className="absolute -top-2 -right-2 bg-red-500 text-white w-6 h-6 rounded-full flex items-center justify-center font-black text-[10px] shadow-lg">✕</button>
-                    </div>
-                  ))}
-                  {previews.length < 10 && (
-                    <label className="flex items-center justify-center h-32 border-2 border-dashed border-slate-300 rounded-2xl cursor-pointer hover:bg-slate-50 transition-all"><input type="file" accept="image/*" multiple onChange={manejarArchivos} className="hidden" /><span className="text-blue-600 font-black">+</span></label>
+                  {fotosVista.map((foto, index) => {
+                    const esVideo = esUnVideo(foto);
+
+                    return (
+                      <div key={index} className="relative h-40 animate-in zoom-in-95 group rounded-2xl overflow-hidden shadow-md bg-black">
+                        {esVideo ? (
+                          <>
+                            <video src={`${foto.url}#t=0.001`} className="w-full h-full object-cover opacity-80" preload="metadata" muted />
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                              <div className="bg-white/30 backdrop-blur-sm w-10 h-10 rounded-full flex items-center justify-center text-white pl-1 shadow-lg border border-white/50">▶</div>
+                            </div>
+                          </>
+                        ) : (
+                          <img src={foto.url} className={`w-full h-full object-cover transition-all ${foto.is360 ? 'scale-105 saturate-110' : ''}`} alt="" />
+                        )}
+                        
+                        <button type="button" onClick={() => eliminarFoto(index)} className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white w-7 h-7 rounded-full flex items-center justify-center font-black text-[10px] shadow-lg transition-colors z-20">✕</button>
+                        
+                        {!esVideo && (
+                          <button 
+                            type="button" 
+                            onClick={() => toggle360(index)} 
+                            className={`absolute bottom-2 left-2 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-lg transition-all border-2 z-20
+                                ${foto.is360 ? 'bg-blue-600 text-white border-blue-400 shadow-blue-500/50' : 'bg-white/90 backdrop-blur-sm text-slate-600 border-white hover:bg-white'}
+                            `}
+                          >
+                            {foto.is360 ? '✓ ES 360°' : 'MARCAR 360°'}
+                          </button>
+                        )}
+
+                        {foto.is360 && <div className="absolute inset-0 border-4 border-blue-600 rounded-2xl pointer-events-none z-10"></div>}
+                      </div>
+                    );
+                  })}
+                  
+                  {fotosVista.length < 20 && (
+                    <label className="flex items-center justify-center h-40 border-2 border-dashed border-slate-300 rounded-2xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition-all">
+                        <input type="file" accept="image/*,video/*" multiple onChange={manejarArchivos} className="hidden" />
+                        <span className="text-blue-600 font-black text-2xl">+</span>
+                    </label>
                   )}
                 </div>
               )}
@@ -515,9 +514,9 @@ export default function FormularioPublicar() {
           </div>
 
           <div className="flex gap-4 pt-8">
-            <button type="button" onClick={() => navigate(-1)} className="flex-1 bg-slate-50 hover:bg-slate-100 text-slate-400 border border-slate-200 font-black py-5 rounded-3xl transition-all text-[10px] uppercase tracking-widest italic uppercase">CANCELAR</button>
-            <button type="submit" disabled={cargando} className="flex-[2] bg-blue-600 hover:bg-blue-700 text-white font-black py-5 rounded-3xl shadow-xl shadow-blue-200 transform active:scale-95 transition-all text-[10px] uppercase tracking-widest disabled:opacity-50 italic">
-                {cargando ? 'PROCESANDO...' : (id ? 'GUARDAR CAMBIOS' : 'ENVIAR PROPUESTA')}
+            <button type="button" onClick={() => navigate(-1)} className="flex-1 bg-slate-50 hover:bg-slate-100 text-slate-400 border border-slate-200 font-black py-5 rounded-3xl transition-all text-[10px] uppercase tracking-widest italic">CANCELAR</button>
+            <button type="submit" disabled={isSubiendo || cargando} className="flex-[2] bg-blue-600 hover:bg-blue-700 text-white font-black py-5 rounded-3xl shadow-xl shadow-blue-200 transform active:scale-95 transition-all text-[10px] uppercase tracking-widest disabled:opacity-50 italic">
+                {isSubiendo ? 'ENVIANDO...' : (id ? 'GUARDAR CAMBIOS' : 'ENVIAR PROPUESTA')}
             </button>
           </div>
         </form>

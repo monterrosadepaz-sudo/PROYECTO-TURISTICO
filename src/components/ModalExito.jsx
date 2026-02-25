@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function ModalExito({ visible, alCerrar, correo }) {
+export default function ModalExito({ visible, alCerrar, correo, esEdicion = false }) {
   if (!visible) return null;
 
   return (
@@ -10,10 +10,15 @@ export default function ModalExito({ visible, alCerrar, correo }) {
           ✓
         </div>
         <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tighter mb-4">
-          ¡Propuesta Enviada!
+          {esEdicion ? '¡Cambios Guardados!' : '¡Propuesta Enviada!'}
         </h2>
         <p className="text-slate-500 text-[11px] leading-relaxed mb-8">
-          TU DESTINO HA SIDO REGISTRADO CORRECTAMENTE. SE HA ENVIADO UNA CONFIRMACIÓN A: 
+          <span className="uppercase">
+            {esEdicion 
+              ? 'Tu destino ha sido actualizado correctamente. Se ha enviado una confirmación a: ' 
+              : 'TU DESTINO HA SIDO REGISTRADO CORRECTAMENTE. SE HA ENVIADO UNA CONFIRMACIÓN A: '
+            }
+          </span>
           <span className="block text-blue-600 font-black mt-2 underline decoration-blue-100 underline-offset-4">
             {correo}
           </span>
@@ -22,7 +27,7 @@ export default function ModalExito({ visible, alCerrar, correo }) {
           onClick={alCerrar}
           className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl shadow-lg shadow-blue-200 text-[10px] uppercase tracking-widest transition-all active:scale-95"
         >
-          VOLVER AL MAPA
+          {esEdicion ? 'VOLVER A MIS PROPUESTAS' : 'VOLVER AL MAPA'}
         </button>
       </div>
     </div>

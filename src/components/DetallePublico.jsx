@@ -1,6 +1,42 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import MapaFormulario from './MapaFormulario'; // Reutilizamos tu componente de mapa
+import MapaFormulario from './MapaFormulario'; 
+import { ReactPhotoSphereViewer } from 'react-photo-sphere-viewer';
+import { reglasPermisos, serviciosAmenidades, actividadesDestacadas } from '../data/OpcionesDestino';
+
+const etiquetasTarifas = {
+    adultos: "Adultos",
+    ninos: "Niños",
+    terceraEdad: "Tercera Edad"
+};
+
+// ==============================================================
+// 🛡️ ESCUDO ANTI-CORS CON PROXY NINJA PARA EL VISOR 360
+// ==============================================================
+// --- ESCUDO INMERSIVO 360 (VERSIÓN COMPATIBLE LARAVEL 12) ---
+const Visor360Seguro = ({ url }) => {
+    // IMPORTANTE: No usamos useEffect ni fetch manual. 
+    // Dejamos que la librería pida la imagen directamente.
+    
+    return (
+        <div className="w-full h-full bg-slate-900 flex items-center justify-center">
+            <ReactPhotoSphereViewer 
+                src={url} 
+                height="100%" 
+                width="100%" 
+                littlePlanet={false} 
+                hideNavbarButton={true}
+                // 🚀 ESTE ES EL SECRETO: Forzamos el uso de CORS anónimo
+                // para que el navegador use los headers que Julio puso en index.php
+                onReady={(instance) => {
+                    console.log("Sistema inmersivo inicializado correctamente");
+                }}
+            />
+        </div>
+    );
+};
+// ==============================================================
+
 
 export default function DetallePublico() {
   const navigate = useNavigate();
@@ -8,9 +44,10 @@ export default function DetallePublico() {
   const [sitio, setSitio] = useState(null);
   const [cargando, setCargando] = useState(true);
   
-  // Estados para galería y zoom
-  const [fotoActual, setFotoActual] = useState(0);
   const [fotoZoom, setFotoZoom] = useState(null);
+  const [modalSimbologia, setModalSimbologia] = useState(false);
+
+  const todasLasOpciones = [...reglasPermisos, ...serviciosAmenidades, ...actividadesDestacadas];
 
   useEffect(() => {
     const cargarDestino = async () => {
@@ -29,12 +66,35 @@ export default function DetallePublico() {
             } catch (e) { return {}; }
           };
 
+          const loteRaw = data.lote_imagenes || data.imagenes;
+          const loteProcesado = { planas: [], panoramas: [], videos: [] };
+          
+          const procesarUrl = (nombre) => {
+              if (nombre.startsWith('http')) return nombre;
+              if (nombre.includes('publicacion')) return `http://100.123.6.123:8000/storage/publicaciones/${nombre}`;
+              return `http://100.123.6.123:8000/storage/preformularios/${nombre}`;
+          };
+
+          if (loteRaw && typeof loteRaw === 'object' && !Array.isArray(loteRaw)) {
+              if (loteRaw.plana) loteProcesado.planas = loteRaw.plana.map(procesarUrl);
+              if (loteRaw['360']) loteProcesado.panoramas = loteRaw['360'].map(procesarUrl);
+              if (loteRaw.video) loteProcesado.videos = loteRaw.video.map(procesarUrl);
+          } else if (Array.isArray(loteRaw)) {
+              loteRaw.forEach(img => {
+                  const url = procesarUrl(img);
+                  if (url.match(/\.(mp4|mov)$/i)) loteProcesado.videos.push(url);
+                  else if (url.includes('-360')) loteProcesado.panoramas.push(url);
+                  else loteProcesado.planas.push(url);
+              });
+          }
+
           setSitio({
             ...data,
             politicas: parseExtremo(data.politicas),
             horarios: parseExtremo(data.horarios),
             tarifas: parseExtremo(data.detalles)?.tarifas_desglosadas || { adultos: data.costo_entrada },
-            lote: Array.isArray(data.lote_imagenes) ? data.lote_imagenes : [data.imagen],
+            loteClasificado: loteProcesado,
+            clasificacion: parseExtremo(data.clasificacion) || [],
             coordenadas: { lat: parseFloat(data.latitud), lng: parseFloat(data.longitud) }
           });
         }
@@ -44,141 +104,261 @@ export default function DetallePublico() {
     cargarDestino();
   }, [id]);
 
-  // Autoplay mejorado (se detiene si el usuario interactúa)
-  useEffect(() => {
-    if (sitio?.lote?.length > 1 && !fotoZoom) {
-      const timer = setInterval(() => {
-        setFotoActual((prev) => (prev + 1) % sitio.lote.length);
-      }, 6000);
-      return () => clearInterval(timer);
-    }
-  }, [sitio, fotoZoom]);
+  const GrupoIconos = ({ titulo, opciones, colorTitulo }) => {
+      const activos = opciones.filter(opt => sitio.politicas[opt.id] === true);
+      if (activos.length === 0) return null;
 
-  const cambiarFoto = (direccion) => {
-    if (direccion === 'sig') setFotoActual((prev) => (prev + 1) % sitio.lote.length);
-    else setFotoActual((prev) => (prev - 1 + sitio.lote.length) % sitio.lote.length);
+      return (
+          <div className="mb-8 last:mb-0 bg-slate-50 p-6 md:p-8 rounded-[2rem] border border-slate-100">
+              <h5 className={`text-[10px] font-black uppercase tracking-[0.2em] mb-6 ${colorTitulo} border-b border-slate-200 pb-3`}>{titulo}</h5>
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4 md:gap-6">
+                  {activos.map(opt => (
+                      <div key={opt.id} className="flex flex-col items-center justify-start gap-2 text-center group">
+                          <div className="w-14 h-14 bg-white border border-slate-200 rounded-2xl flex items-center justify-center p-3 transition-all duration-300 shadow-sm">
+                              <img 
+                                  src={`/icons/${opt.id}.png`} 
+                                  alt={opt.label} 
+                                  className="w-full h-full object-contain opacity-70"
+                                  onError={(e) => {
+                                      e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M5 13l4 4L19 7'%3E%3C/path%3E%3C/svg%3E";
+                                  }}
+                              />
+                          </div>
+                          <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest text-slate-500 leading-tight">{opt.label}</span>
+                      </div>
+                  ))}
+              </div>
+          </div>
+      );
   };
 
-  if (cargando) return <div className="min-h-screen flex items-center justify-center font-black text-blue-600 animate-pulse uppercase italic">Sincronizando Destino...</div>;
+  const CatalogoSimbologia = ({ titulo, opciones }) => (
+      <div className="mb-8 last:mb-0">
+          <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 border-b border-slate-100 pb-2 mb-4">{titulo}</h4>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {opciones.map(opt => (
+                  <div key={opt.id} className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                      <div className="w-8 h-8 flex-shrink-0">
+                          <img 
+                              src={`/icons/${opt.id}.png`} 
+                              alt={opt.label} 
+                              className="w-full h-full object-contain opacity-70"
+                              onError={(e) => {
+                                  e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M5 13l4 4L19 7'%3E%3C/path%3E%3C/svg%3E";
+                              }}
+                          />
+                      </div>
+                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-600 leading-tight">{opt.label}</span>
+                  </div>
+              ))}
+          </div>
+      </div>
+  );
+
+  if (cargando) return <div className="min-h-screen flex items-center justify-center font-black text-blue-600 animate-pulse uppercase italic tracking-widest">Sincronizando Destino...</div>;
   if (!sitio) return <div className="min-h-screen flex items-center justify-center font-black text-slate-400 uppercase italic">Destino no encontrado</div>;
 
   return (
-    <div className="min-h-screen bg-white pb-20 italic font-sans text-left">
+    <div className="min-h-screen bg-white pb-32 italic font-sans text-left relative">
       
-      {/* MODAL DE ZOOM (LIGHTBOX) */}
-      {fotoZoom && (
-        <div 
-            className="fixed inset-0 z-[6000] bg-slate-900/95 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in duration-300"
-            onClick={() => setFotoZoom(null)}
-        >
-            <button className="absolute top-10 right-10 text-white text-4xl font-black hover:scale-110 transition-transform">✕</button>
-            <img 
-                src={`http://100.123.6.123:8000/storage/preformularios/${fotoZoom}`} 
-                className="max-w-full max-h-[90vh] rounded-3xl shadow-2xl object-contain animate-in zoom-in-95 duration-500"
-                alt="Zoom"
-            />
-            <p className="absolute bottom-10 text-white/50 font-black uppercase text-[10px] tracking-[0.5em]">Click en cualquier lugar para cerrar</p>
+      <button 
+        onClick={() => setModalSimbologia(true)}
+        className="fixed bottom-8 right-8 z-[5000] bg-slate-900 text-white p-4 md:px-6 rounded-2xl shadow-2xl flex items-center gap-3 hover:-translate-y-1 hover:bg-black transition-all group border border-slate-700"
+      >
+          <span className="font-black text-[10px] uppercase tracking-widest">Simbología</span>
+      </button>
+
+      {modalSimbologia && (
+        <div className="fixed inset-0 z-[6000] bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in" onClick={() => setModalSimbologia(false)}>
+            <div className="bg-white max-w-4xl w-full p-8 md:p-12 rounded-[3rem] shadow-2xl flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+                <div className="flex justify-between items-center border-b border-slate-100 pb-6 mb-6 shrink-0">
+                    <h2 className="text-xl font-black uppercase tracking-widest text-blue-800">Guía de Íconos</h2>
+                    <button onClick={() => setModalSimbologia(false)} className="text-xl font-black text-slate-400 hover:text-red-500 transition-colors">✕</button>
+                </div>
+                
+                {/* Scrollbar estilizada con Tailwind para arreglar el warning jsx */}
+                <div className="overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
+                    <CatalogoSimbologia titulo="Reglas y Permisos" opciones={reglasPermisos} />
+                    <CatalogoSimbologia titulo="Servicios y Amenidades" opciones={serviciosAmenidades} />
+                    <CatalogoSimbologia titulo="Actividades Destacadas" opciones={actividadesDestacadas} />
+                </div>
+            </div>
         </div>
       )}
 
-      {/* HEADER */}
-      <div className="max-w-7xl mx-auto px-6 py-8 flex justify-between items-center">
-        <button onClick={() => navigate(-1)} className="group flex items-center gap-3 font-black text-[10px] uppercase text-slate-400 hover:text-blue-600 transition-all tracking-widest">
-          <span className="text-lg group-hover:-translate-x-1 transition-transform">←</span> Volver a la lista
+      {/* MODAL DE ZOOM MEJORADO (SOPORTA 360 CON PROXY NINJA) */}
+      {fotoZoom && (
+        <div className="fixed inset-0 z-[6000] bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in duration-300" onClick={() => setFotoZoom(null)}>
+            <button className="absolute top-8 right-8 text-white/50 hover:text-white text-3xl font-black hover:scale-110 transition-all z-10 bg-black/20 w-12 h-12 rounded-full flex items-center justify-center">✕</button>
+            
+            {fotoZoom.tipo === 'video' ? (
+                <video controls autoPlay className="max-w-full max-h-[90vh] rounded-[2rem] shadow-2xl object-contain animate-in zoom-in-95 duration-500" onClick={e => e.stopPropagation()}>
+                    <source src={fotoZoom.url} type="video/mp4" />
+                </video>
+            ) : fotoZoom.tipo === '360' ? (
+                <div className="w-full max-w-6xl h-[70vh] md:h-[85vh] rounded-[3rem] overflow-hidden shadow-2xl relative cursor-move animate-in zoom-in-95 duration-500 border-8 border-white/10" onClick={e => e.stopPropagation()}>
+                    
+                    {/* AQUI SE MANDA LLAMAR AL ESCUDO ANTI CORS */}
+                    <Visor360Seguro url={fotoZoom.url} />
+
+                    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-md text-white px-8 py-4 rounded-full pointer-events-none z-10 shadow-2xl border border-white/20">
+                        <p className="text-[10px] font-black uppercase tracking-widest flex items-center gap-3">
+                            <span className="text-xl animate-bounce">👆</span> Arrastra para explorar
+                        </p>
+                    </div>
+                </div>
+            ) : (
+                <img src={fotoZoom.url} className="max-w-full max-h-[90vh] rounded-[2rem] shadow-2xl object-contain animate-in zoom-in-95 duration-500 select-none" alt="Zoom" onClick={e => e.stopPropagation()}/>
+            )}
+        </div>
+      )}
+
+      <div className="bg-white px-8 py-6 sticky top-0 z-[1000] shadow-sm border-b border-slate-100 flex justify-between items-center">
+        <button onClick={() => navigate(-1)} className="font-black text-[9px] uppercase text-slate-400 hover:text-blue-600 transition-all tracking-widest flex items-center gap-2">
+          <span className="text-sm">←</span> VOLVER A LA LISTA
         </button>
       </div>
 
-      <div className="max-w-6xl mx-auto px-6 space-y-12">
+      <div className="max-w-5xl mx-auto px-6 mt-10 space-y-14">
         
-        <div className="space-y-4">
-          <h1 className="text-7xl md:text-8xl font-black text-slate-900 uppercase tracking-tighter leading-[0.85] italic">
+        <section className="space-y-6">
+          <h1 className="text-4xl md:text-5xl font-black text-slate-900 uppercase tracking-tighter leading-none drop-shadow-sm">
             {sitio.nombre}
           </h1>
-          <div className="flex gap-2">
-            <span className="bg-blue-600 text-white text-[9px] font-black px-4 py-2 rounded-full uppercase tracking-tighter shadow-lg">{sitio.distrito}</span>
-            <span className="text-blue-600 font-bold text-sm uppercase tracking-widest self-center ml-2">{sitio.municipio}</span>
-          </div>
-        </div>
-
-        {/* --- GALERÍA CON CONTROLES MANUALES --- */}
-        <div className="relative h-[650px] rounded-[4rem] overflow-hidden shadow-2xl bg-slate-100 group border-8 border-slate-50">
-            {sitio.lote.map((img, idx) => (
-                <div key={idx} className={`absolute inset-0 transition-all duration-1000 ${idx === fotoActual ? 'opacity-100 scale-100' : 'opacity-0 scale-105 pointer-events-none'}`}>
-                    <img 
-                        src={`http://100.123.6.123:8000/storage/preformularios/${img}`} 
-                        className="w-full h-full object-cover cursor-zoom-in" 
-                        alt={`Vista ${idx}`}
-                        onClick={() => setFotoZoom(img)}
-                    />
-                </div>
-            ))}
-
-            {/* Botones Manuales (Aparecen al Hover) */}
-            <div className="absolute inset-y-0 left-0 flex items-center pl-8 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button onClick={() => cambiarFoto('ant')} className="w-14 h-14 bg-white/20 backdrop-blur-md hover:bg-white text-white hover:text-blue-600 rounded-full flex items-center justify-center text-2xl font-black transition-all shadow-xl">←</button>
-            </div>
-            <div className="absolute inset-y-0 right-0 flex items-center pr-8 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button onClick={() => cambiarFoto('sig')} className="w-14 h-14 bg-white/20 backdrop-blur-md hover:bg-white text-white hover:text-blue-600 rounded-full flex items-center justify-center text-2xl font-black transition-all shadow-xl">→</button>
-            </div>
-
-            <div className="absolute bottom-10 left-10 bg-black/40 backdrop-blur-md px-6 py-3 rounded-full flex gap-4 items-center z-20">
-                <p className="text-white font-black text-[10px] uppercase tracking-widest">{fotoActual + 1} / {sitio.lote.length}</p>
-                <div className="h-4 w-px bg-white/20"></div>
-                <button onClick={() => setFotoZoom(sitio.lote[fotoActual])} className="text-white hover:text-blue-400 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" /></svg>
-                </button>
-            </div>
-        </div>
-
-        {/* --- GRID DE INFORMACIÓN --- */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 pt-10">
-          <div className="lg:col-span-2 space-y-16">
-            <section>
-              <h4 className="text-[10px] font-black uppercase text-blue-600 tracking-[0.3em] mb-8 italic">01. Reseña del Destino</h4>
-              <p className="text-3xl text-slate-700 font-medium leading-[1.2] italic">"{sitio.descripcion}"</p>
-            </section>
-
-            {/* --- MAPA DE UBICACIÓN REAL --- */}
-            <section className="space-y-6">
-                <h4 className="text-[10px] font-black uppercase text-blue-600 tracking-[0.3em] italic">02. Cómo llegar</h4>
-                <div className="h-96 rounded-[3.5rem] overflow-hidden border-8 border-slate-50 shadow-2xl relative">
-                    <MapaFormulario 
-                        ubicacionActual={sitio.coordenadas} 
-                        setUbicacion={() => {}} // Solo lectura para el turista
-                    />
-                    <div className="absolute top-6 left-6 bg-slate-900 text-white px-5 py-2 rounded-2xl shadow-xl z-20 font-black text-[9px] uppercase tracking-widest">
-                        Ubicación exacta verificada
-                    </div>
-                </div>
-            </section>
+          
+          <div className="flex flex-wrap items-center gap-3 border-b border-slate-100 pb-6">
+            <span className="bg-blue-600 text-white text-[9px] font-black px-4 py-2 rounded-xl uppercase tracking-widest shadow-md">
+                {sitio.departamento} | {sitio.distrito || sitio.municipio}
+            </span>
+            {sitio.clasificacion && sitio.clasificacion[0] && (
+                <span className="border-2 border-emerald-500 text-emerald-600 text-[9px] font-black px-4 py-1.5 rounded-xl uppercase tracking-widest">
+                    {sitio.clasificacion[0]}
+                </span>
+            )}
           </div>
 
-          <div className="space-y-8">
-            <div className="bg-slate-900 text-white p-12 rounded-[4rem] shadow-2xl relative overflow-hidden">
-              <h4 className="text-[10px] font-black uppercase text-blue-400 tracking-widest mb-10 italic">03. Horarios</h4>
-              <div className="space-y-5">
+          <div className="pt-2">
+              <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-3">Descripción</h4>
+              <p className="text-base md:text-lg text-slate-600 font-medium leading-relaxed text-justify">
+                {sitio.descripcion}
+              </p>
+          </div>
+        </section>
+
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white p-8 md:p-10 rounded-[2.5rem] shadow-sm border border-slate-200">
+              <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mb-6 border-b border-slate-100 pb-4">Horarios de Atención</h4>
+              <div className="space-y-3">
                 {Object.entries(sitio.horarios).map(([dia, hora]) => (
-                  <div key={dia} className="flex justify-between border-b border-white/10 pb-2">
-                    <span className="text-[10px] font-black uppercase text-slate-500">{dia}</span>
-                    <span className="text-[11px] font-bold text-white">{hora}</span>
+                  <div key={dia} className="flex justify-between items-center border-b border-slate-50 pb-2">
+                    <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest">{dia}</span>
+                    <span className="text-[10px] font-bold text-slate-800 tracking-wider">{hora}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="bg-blue-600 text-white p-12 rounded-[4rem] shadow-2xl shadow-blue-100">
-              <h4 className="text-[10px] font-black uppercase text-blue-200 tracking-widest mb-8 italic">04. Tarifas</h4>
-              <div className="space-y-6">
-                {Object.entries(sitio.tarifas).map(([cat, precio]) => (
-                    <div key={cat} className="flex justify-between items-baseline border-b border-white/20 pb-4">
-                        <span className="text-[10px] font-black uppercase">{cat}</span>
-                        <p className="leading-none"><span className="text-sm font-bold">$</span><span className="text-4xl font-black italic tracking-tighter">{precio}</span></p>
-                    </div>
-                ))}
+            <div className="bg-white p-8 md:p-10 rounded-[2.5rem] shadow-sm border border-slate-200">
+              <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mb-6 border-b border-slate-100 pb-4">Tarifas de Ingreso</h4>
+              <div className="space-y-4">
+                {Object.entries(sitio.tarifas).map(([cat, precio]) => {
+                    const labelBonito = etiquetasTarifas[cat] || cat;
+                    return (
+                        <div key={cat} className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-600">{labelBonito}</span>
+                            <p className="leading-none flex items-baseline gap-1 text-slate-800">
+                                <span className="text-xs font-bold text-slate-400">$</span>
+                                <span className="text-2xl font-black italic tracking-tighter">{parseFloat(precio).toFixed(2)}</span>
+                            </p>
+                        </div>
+                    );
+                })}
               </div>
             </div>
-          </div>
-        </div>
+        </section>
+
+        <section className="space-y-8 bg-white p-8 md:p-10 rounded-[3rem] shadow-sm border border-slate-200">
+            <div className="border-b border-slate-100 pb-4 mb-6">
+                <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Evidencia Visual del Destino</h4>
+            </div>
+
+            <div className="space-y-4">
+                <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-blue-600 inline-block"></span> Fotografías ({sitio.loteClasificado.planas.length})
+                </h5>
+                {sitio.loteClasificado.planas.length > 0 ? (
+                    <div className="flex gap-4 overflow-x-auto pb-6 snap-x snap-mandatory overflow-y-hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                        {sitio.loteClasificado.planas.map((url, idx) => (
+                            <div key={idx} onClick={() => setFotoZoom({url, tipo: 'plana'})} className="snap-start shrink-0 w-48 h-32 md:w-64 md:h-44 rounded-[1.5rem] overflow-hidden shadow-md cursor-zoom-in group bg-slate-100">
+                                <img src={url} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={`Plana ${idx}`} />
+                            </div>
+                        ))}
+                    </div>
+                ) : <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 p-4 rounded-xl border border-slate-100 w-max">Sin fotografías</p>}
+            </div>
+
+            <div className="space-y-4">
+                <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span> Panorámicas 360° ({sitio.loteClasificado.panoramas.length})
+                </h5>
+                {sitio.loteClasificado.panoramas.length > 0 ? (
+                    <div className="flex gap-4 overflow-x-auto pb-6 snap-x snap-mandatory overflow-y-hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                        {sitio.loteClasificado.panoramas.map((url, idx) => (
+                            <div key={idx} onClick={() => setFotoZoom({url, tipo: '360'})} className="snap-start shrink-0 w-48 h-32 md:w-64 md:h-44 rounded-[1.5rem] overflow-hidden shadow-md cursor-zoom-in group relative bg-slate-100">
+                                <img src={url} className="w-full h-full object-cover saturate-150 group-hover:scale-110 transition-transform duration-500" alt={`360 ${idx}`} />
+                                <div className="absolute top-3 right-3 bg-emerald-500 text-white text-[8px] font-black px-2 py-1 rounded-full uppercase tracking-widest shadow-md">360°</div>
+                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 backdrop-blur-[2px]">
+                                     <span className="text-white font-black text-[10px] uppercase tracking-widest bg-black/50 px-3 py-1.5 rounded-full">Explorar</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 p-4 rounded-xl border border-slate-100 w-max">Sin vistas panorámicas</p>}
+            </div>
+
+            <div className="space-y-4">
+                <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-slate-800 inline-block"></span> Videos ({sitio.loteClasificado.videos.length})
+                </h5>
+                {sitio.loteClasificado.videos.length > 0 ? (
+                    <div className="flex gap-4 overflow-x-auto pb-6 snap-x snap-mandatory overflow-y-hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                        {sitio.loteClasificado.videos.map((url, idx) => (
+                            <div key={idx} onClick={() => setFotoZoom({url, tipo: 'video'})} className="snap-start shrink-0 w-48 h-32 md:w-64 md:h-44 rounded-[1.5rem] overflow-hidden shadow-md cursor-pointer group bg-slate-900 relative">
+                                <video src={`${url}#t=0.001`} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity duration-500" preload="metadata" muted />
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <div className="bg-white/30 backdrop-blur-sm w-12 h-12 rounded-full flex items-center justify-center text-white pl-1 shadow-lg border border-white/50 text-xl group-hover:scale-110 transition-transform">▶</div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 p-4 rounded-xl border border-slate-100 w-max">Sin videos</p>}
+            </div>
+        </section>
+
+        <section className="bg-white rounded-[3rem] p-8 md:p-12 shadow-sm border border-slate-200">
+            <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mb-8">Características del Destino</h4>
+            
+            <GrupoIconos titulo="Reglas y Permisos" opciones={reglasPermisos} colorTitulo="text-slate-500" />
+            <GrupoIconos titulo="Servicios y Amenidades" opciones={serviciosAmenidades} colorTitulo="text-slate-500" />
+            <GrupoIconos titulo="Actividades Destacadas" opciones={actividadesDestacadas} colorTitulo="text-slate-500" />
+            
+            {!Object.values(sitio.politicas).includes(true) && (
+                 <div className="bg-slate-50 p-8 rounded-3xl border border-slate-100 text-center mt-4">
+                     <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Este destino no ha reportado características específicas.</p>
+                 </div>
+            )}
+        </section>
+
+        <section className="bg-white rounded-[3rem] p-8 md:p-10 shadow-sm border border-slate-200 space-y-6">
+            <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-2 border-b border-slate-100 pb-4">
+              <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Mapa de Ubicación</h4>
+              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">GPS: {sitio.coordenadas.lat}, {sitio.coordenadas.lng}</p>
+            </div>
+            <div className="h-72 md:h-96 rounded-[2rem] overflow-hidden border-4 border-slate-50 shadow-inner relative z-0">
+                <MapaFormulario ubicacionActual={sitio.coordenadas} setUbicacion={() => {}} />
+            </div>
+        </section>
+
       </div>
     </div>
   );
