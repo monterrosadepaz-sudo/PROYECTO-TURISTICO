@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-
+import { API_URL } from '../config';
 export default function DetalleDestino() {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -30,7 +30,7 @@ export default function DetalleDestino() {
   useEffect(() => {
     const obtenerInformacion = async () => {
       try {
-        const respuesta = await fetch(`http://100.123.6.123:8000/api/colaborador/publicaciones/${id}`, {
+        const respuesta = await fetch(`${API_URL}/api/colaborador/publicaciones/${id}`, {
           method: 'GET',
           headers: { 'Accept': 'application/json' }
         });
@@ -66,7 +66,7 @@ export default function DetalleDestino() {
         accion: tipoAccion,
         comentario: comentario
       };
-      const res = await fetch('http://100.123.6.123:8000/api/admin/solicitudes', {
+      const res = await fetch(`${API_URL}/api/admin/solicitudes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -117,7 +117,7 @@ export default function DetalleDestino() {
           {fotosPlanas.length > 0 ? (
             <>
               <img 
-                src={`http://100.123.6.123:8000/storage/preformularios/${fotosPlanas[fotoActual]}`} 
+                src={`${API_URL}/storage/preformularios/${fotosPlanas[fotoActual]}`} 
                 alt={`Vista ${fotoActual + 1}`}
                 className="w-full h-full object-cover animate-in fade-in duration-500"
               />

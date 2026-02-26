@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import TablaPropuestas from './TablaPropuestas';
-
+import { API_URL } from '../config';
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const location = useLocation(); 
@@ -46,8 +46,8 @@ export default function AdminDashboard() {
       const headers = { 'Accept': 'application/json', 'Content-Type': 'application/json' };
 
       if (pestaña === 'pendientes') {
-        const urlPreformularios = 'http://100.123.6.123:8000/api/admin/preformularios';
-        const urlPublicacionesPendientes = 'http://100.123.6.123:8000/api/admin/publicaciones/pendientes';
+        const urlPreformularios = `${API_URL}/api/admin/preformularios`;
+        const urlPublicacionesPendientes = `${API_URL}/api/admin/publicaciones/pendientes`;
 
         const [resPre, resPub] = await Promise.all([
             fetch(urlPreformularios, { method: 'GET', headers }).catch(e => null),
@@ -67,10 +67,10 @@ export default function AdminDashboard() {
 
       } else {
         let url = '';
-        if (pestaña === 'usuarios') url = 'http://100.123.6.123:8000/api/usuarios';
-        else if (pestaña === 'activos') url = 'http://100.123.6.123:8000/api/admin/publicaciones';
-        else if (pestaña === 'inactivos') url = 'http://100.123.6.123:8000/api/admin/publicaciones/inactivas';
-        else if (pestaña === 'solicitudes') url = `http://100.123.6.123:8000/api/admin/solicitudes/listar?idadmin=${sesion.idusuario}`;
+        if (pestaña === 'usuarios') url = `${API_URL}/api/usuarios`;
+        else if (pestaña === 'activos') url = `${API_URL}/api/admin/publicaciones`;
+        else if (pestaña === 'inactivos') url = `${API_URL}/api/admin/publicaciones/inactivas`;
+        else if (pestaña === 'solicitudes') url = `${API_URL}/api/admin/solicitudes/listar?idadmin=${sesion.idusuario}`;
 
         if (url) {
           const respuesta = await fetch(url, { method: 'GET', headers });
@@ -101,7 +101,7 @@ export default function AdminDashboard() {
 
   const abrirYMarcarSolicitud = async (solicitud) => {
       try {
-          fetch(`http://100.123.6.123:8000/api/admin/solicitudes/detalles/${solicitud.idmensaje}`, {
+          fetch(`${API_URL}/api/admin/solicitudes/detalles/${solicitud.idmensaje}`, {
               method: 'GET',
               headers: { 'Accept': 'application/json' }
           });
@@ -113,29 +113,32 @@ export default function AdminDashboard() {
   };
 
   // --- INICIO DEL FLUJO DE EDICIÓN ---
-  const manejarAccion = async (id, accion, datosExtra) => {
-    if (accion === 'editar_usuario') {
-      setUsuarioActual(datosExtra);
-      setDatosEdicion({
-        nombre: datosExtra.nombre,
-        username: datosExtra.username,
-        email: datosExtra.email,
-        password: '',
-        confirmarPassword: ''
-      });
-      setFaseModal('advertencia'); // Iniciamos con la advertencia
-      setMostrarModal(true);
-      return;
-    }
-    if (accion === 'analizar_propuesta') {
-      navigate(`/dashboard/analizar/${id}`); 
-      return;
-    }
-    if (accion === 'ver_detalle_sitio') {
-      navigate(`/admin/sitio/${id}`); 
-      return;
-    }
-  };
+ // --- INICIO DEL FLUJO DE EDICIÓN ---
+  const manejarAccion = async (id, accion, datosExtra) => {
+    if (accion === 'editar_usuario') {
+      setUsuarioActual(datosExtra);
+      setDatosEdicion({
+        nombre: datosExtra.nombre,
+        username: datosExtra.username,
+        email: datosExtra.email,
+        password: '',
+        confirmarPassword: ''
+      });
+      setFaseModal('advertencia'); // Iniciamos con la advertencia
+      setMostrarModal(true);
+      return;
+    }
+    if (accion === 'analizar_propuesta') {
+      // ✅ AGREGAMOS EL STATE (LA MOCHILA CON LOS DATOS)
+      navigate(`/dashboard/analizar/${id}`, { state: { datosSolicitud: datosExtra } }); 
+      return;
+    }
+    if (accion === 'ver_detalle_sitio') {
+      // ✅ AGREGAMOS EL STATE AQUÍ TAMBIÉN
+      navigate(`/admin/sitio/${id}`, { state: { datosSolicitud: datosExtra } }); 
+      return;
+    }
+  };
 
   const manejarCambioInput = (e) => {
     setDatosEdicion({ ...datosEdicion, [e.target.name]: e.target.value });
@@ -158,7 +161,7 @@ export default function AdminDashboard() {
     setGuardandoUsuario(true);
 
     try {
-      const url = `http://100.123.6.123:8000/api/usuarios/${usuarioActual.idusuario}`;
+      const url = `${API_URL}/api/usuarios/${usuarioActual.idusuario}`;
       
       const payload = {
         nombre: datosEdicion.nombre,

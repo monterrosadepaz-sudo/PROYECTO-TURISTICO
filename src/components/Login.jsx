@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-
+import { API_URL } from '../config';
 export default function Login({ alEntrar, alCerrar }) {
   const [vista, setVista] = useState('login'); // 'login', 'registro', 'recuperar'
   const [verClave, setVerClave] = useState(false);
@@ -51,7 +51,7 @@ export default function Login({ alEntrar, alCerrar }) {
     setCargando(true);
     setMensajeServidor({ texto: '', tipo: '' });
     try {
-      const respuesta = await fetch('http://100.123.6.123:8000/api/recuperacion', { 
+      const respuesta = await fetch(`${API_URL}/api/recuperacion`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify({ usuario: datos.usuarioRecuperar.trim() })
@@ -97,7 +97,7 @@ export default function Login({ alEntrar, alCerrar }) {
           formData.append('foto_perfil', fotoPerfil, nombreAprobado);
         }
 
-        const respuesta = await fetch('http://100.123.6.123:8000/api/usuarios', {
+        const respuesta = await fetch(`${API_URL}/api/usuarios`, {
           method: 'POST',
           headers: { 'Accept': 'application/json' },
           body: formData
@@ -113,7 +113,7 @@ export default function Login({ alEntrar, alCerrar }) {
         setTimeout(() => setVista('login'), 3000);
 
       } else {
-        const respuesta = await fetch('http://100.123.6.123:8000/api/login', {
+        const respuesta = await fetch(`${API_URL}/api/login`, {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',

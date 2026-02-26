@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import MapaFormulario from './MapaFormulario';
 import { reglasPermisos, serviciosAmenidades, actividadesDestacadas } from '../data/OpcionesDestino';
+import { API_URL } from '../config';
 
 // --- COMPONENTE DE GALERÍA INTELIGENTE ---
 const GaleriaEvidencia = ({ imagenes, imagenPrincipal }) => {
@@ -47,7 +48,7 @@ const GaleriaEvidencia = ({ imagenes, imagenPrincipal }) => {
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         {listaMultimedia.map((item, index) => {
-          const rutaCompleta = item.url.startsWith('http') ? item.url : `http://100.123.6.123:8000/storage/publicaciones/${item.url}`;
+          const rutaCompleta = item.url.startsWith('http') ? item.url :`${API_URL}/storage/publicaciones/${item.url}`;
           
           return (
             <div 
@@ -123,7 +124,7 @@ export default function AdminDetalleSitio() {
   useEffect(() => {
     const cargarDetalleAdmin = async () => {
       try {
-        const url = `http://100.123.6.123:8000/api/admin/publicaciones/${id}`;
+        const url = `${API_URL}/api/admin/publicaciones/${id}`;
         const respuesta = await fetch(url, { method: 'GET', headers: { 'Accept': 'application/json' } });
 
         if (respuesta.ok) {
@@ -150,21 +151,30 @@ export default function AdminDetalleSitio() {
       zonaGestionRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const notificarUsuario = async (accionRealizada, mensajePersonalizado) => {
-      const destinatarioId = datosSolicitud?.remitente_id || sitio?.idusuario || sitio?.colaborador_id; 
-      if (!destinatarioId || !sesionAdmin?.idusuario) return;
+const notificarUsuario = async (accionRealizada, mensajePersonalizado) => {
+      // 1. Obtenemos el destinatario de donde sea posible
+      const idUsuarioDestino = datosSolicitud?.remitente_id || sitio?.idusuario || sitio?.colaborador_id; 
+      
+      if (!idUsuarioDestino || !sesionAdmin?.idusuario) return;
 
       try {
+          // 2. Construimos el payload, asegurándonos de que respuesta_a SIEMPRE tenga un valor válido.
+          // Si no hay idmensaje, usamos el ID del destino como hack. Si por alguna razón extraña 
+          // el ID del destino falla, mandamos el ID de la publicación como último recurso.
           const payload = {
               "idpublicacion": id,
               "remitente_id": sesionAdmin.idusuario, 
-              "destinatario_id": destinatarioId,    
+              "destinatario_id": idUsuarioDestino,    
               "accion": "aprobar",                  
               "comentarios": mensajePersonalizado,
-              "respuesta_a": datosSolicitud?.idmensaje || null 
+              "respuesta_a": idUsuarioDestino
           };
 
-          await fetch('http://100.123.6.123:8000/api/admin/solicitud/responder', {
+          // --- SOLO PARA DEPURAR (Borra esto después) ---
+          console.log("🚀 Payload a enviar:", payload); 
+          // ----------------------------------------------
+
+          await fetch(`${API_URL}/api/admin/solicitudes/responder`, { 
               method: 'POST',
               headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
               body: JSON.stringify(payload)
@@ -184,7 +194,7 @@ export default function AdminDetalleSitio() {
 
       try {
           const endpoint = estaActivo ? 'desactivar' : 'activar';
-          const url = `http://100.123.6.123:8000/api/admin/publicaciones/${endpoint}/${id}`;
+          const url = `${API_URL}/api/admin/publicaciones/${endpoint}/${id}`;
 
           const respuesta = await fetch(url, {
               method: 'POST',
@@ -249,15 +259,19 @@ export default function AdminDetalleSitio() {
       {/* 🚀 HERO ACTUALIZADO (Letras Blancas, Fondo Oscuro Elegante) 🚀 */}
       <div className="relative h-[45vh] w-full overflow-hidden bg-slate-950">
         <img 
-            src={`http://100.123.6.123:8000/storage/publicaciones/${sitio.imagen}`} 
+            src={`${API_URL}/storage/publicaciones/${sitio.imagen}`} 
             className="w-full h-full object-cover opacity-50 mix-blend-overlay"
             onError={(e) => {
-                if(e.target.src.includes('publicaciones')) {
-                    e.target.src = e.target.src.replace('publicaciones', 'preformularios');
-                } else {
-                    e.target.src = 'https://via.placeholder.com/1920x600?text=Sin+Imagen+Principal';
-                }
-            }}
+    // IMPORTANTE: Primero apagamos el error para romper cualquier bucle
+    e.target.onerror = null; 
+    
+    if (e.target.src.includes('publicaciones')) {
+        e.target.src = e.target.src.replace('publicaciones', 'preformularios');
+    } else {
+        // Usamos la imagen local que guardaste en /public
+        e.target.src = '/default.jpg'; 
+    }
+}}
             alt=""
         />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent"></div>

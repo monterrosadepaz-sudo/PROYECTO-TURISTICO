@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from "react-router-dom";
-
+import { API_URL } from '../config';
 export default function Navbar({ alClickIngresar, isLogged, rol, alCerrarSesion, alClickPublicar, foto }) { 
   const navigate = useNavigate();
 
@@ -14,7 +14,7 @@ export default function Navbar({ alClickIngresar, isLogged, rol, alCerrarSesion,
   const nombreBienvenida = datosUsuario.nombre || "Usuario";
   
   // --- URL POR DEFECTO DEL SISTEMA ---
-  const DEFAULT_AVATAR = "http://100.123.6.123:8000/storage/usuarios/perfil.png";
+  const DEFAULT_AVATAR = `${API_URL}/storage/usuarios/perfil.png`;
 
   const obtenerRutaAvatar = () => {
     if (foto) return foto;
@@ -22,7 +22,7 @@ export default function Navbar({ alClickIngresar, isLogged, rol, alCerrarSesion,
     if (fotoStorage) {
         return fotoStorage.startsWith('http') 
             ? fotoStorage 
-            : `http://100.123.6.123:8000/storage/usuarios/${fotoStorage}`;
+            : `${API_URL}/storage/usuarios/${fotoStorage}`;
     }
     return DEFAULT_AVATAR;
   };
@@ -48,7 +48,7 @@ export default function Navbar({ alClickIngresar, isLogged, rol, alCerrarSesion,
     const fetchNotificaciones = async () => {
       if (isLogged && datosUsuario.idusuario && rol === 'colaborador') {
         try {
-          const url = `http://100.123.6.123:8000/api/colaborador/solicitudes/mensajes/${datosUsuario.idusuario}`;
+          const url = `${API_URL}/api/colaborador/solicitudes/mensajes/${datosUsuario.idusuario}`;
           const resp = await fetch(url, {
              method: 'GET',
              headers: { 'Accept': 'application/json' }

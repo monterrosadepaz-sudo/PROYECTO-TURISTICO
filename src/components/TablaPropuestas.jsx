@@ -1,5 +1,5 @@
 import React from 'react';
-
+import { API_URL } from '../config';
 export default function TablaPropuestas({ propuestas, tipo, alAnalizar, alAccionar, usuarios }) {
   const badgeColor = {
     pendiente: 'bg-amber-100 text-amber-700',
@@ -93,12 +93,15 @@ export default function TablaPropuestas({ propuestas, tipo, alAnalizar, alAccion
               <tr key={idFila} className="bg-slate-50/50 hover:bg-white transition-all group rounded-2xl">
                 <td className="px-6 py-4 first:rounded-l-2xl border-y border-l border-transparent group-hover:border-slate-100">
                   <div className="flex items-center gap-3">
-                    <img 
-                      src={`http://100.123.6.123:8000/storage/${carpetaImagen}/${sitio.imagen}`} 
-                      alt="" 
-                      className="w-12 h-12 rounded-xl object-cover shadow-sm bg-slate-200"
-                      onError={(e) => e.target.src = 'https://via.placeholder.com/150'} 
-                    />
+                    <img
+  src={`${API_URL}/storage/${carpetaImagen}/${sitio.imagen}`}
+  alt=""
+  className="w-12 h-12 rounded-xl object-cover shadow-sm bg-slate-200"
+  onError={(e) => {
+    e.target.onerror = null; 
+    e.target.src = '/default.jpg'; 
+  }}
+/>
                     <div className="flex flex-col">
                       <span className="font-bold text-slate-700 text-sm">{sitio.nombre}</span>
                       <span className="text-[8px] font-black text-blue-600/40 uppercase italic">
@@ -125,21 +128,20 @@ export default function TablaPropuestas({ propuestas, tipo, alAnalizar, alAccion
                 <td className="px-6 py-4 last:rounded-r-2xl border-y border-r border-transparent group-hover:border-slate-100 text-right">
                   <div className="flex justify-end gap-2">
                     {tipo === 'pendientes' ? (
-                      <button 
-                        onClick={() => alAccionar(idFila, 'analizar_propuesta')} 
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase italic tracking-widest transition-all shadow-lg shadow-blue-100"
-                      >
-                        Analizar Propuesta
-                      </button>
-                    ) : (
-                      <button 
-                        /* CORRECCIÓN: Usamos alAccionar para comunicar al padre */
-                        onClick={() => alAccionar(idFila, 'ver_detalle_sitio')} 
-                        className="text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all"
-                      >
-                        Ver Detalle
-                      </button>
-                    )}
+  <button 
+    onClick={() => alAccionar(idFila, 'analizar_propuesta', sitio)} // ✅ Agregamos 'sitio' aquí
+    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase italic tracking-widest transition-all shadow-lg shadow-blue-100"
+  >
+    Analizar Propuesta
+  </button>
+) : (
+  <button 
+    onClick={() => alAccionar(idFila, 'ver_detalle_sitio', sitio)} // ✅ Agregamos 'sitio' aquí
+    className="text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all"
+  >
+    Ver Detalle
+  </button>
+)}
                   </div>
                 </td>
               </tr>

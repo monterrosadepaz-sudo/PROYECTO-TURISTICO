@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import TarjetaDestino from './TarjetaDestino';
-
+import { API_URL } from '../config';
 const VistaDepartamento = ({ onSeleccionarSitio }) => {
   const { nombreDepto } = useParams();
   const navigate = useNavigate();
@@ -20,7 +20,7 @@ const VistaDepartamento = ({ onSeleccionarSitio }) => {
 
     const obtenerDestinos = async () => {
       try {
-        const url = 'http://100.123.6.123:8000/api/publico/publicaciones/listar';
+        const url = `${API_URL}/api/publico/publicaciones/listar`;
         const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
         if (resp.ok) {
           const data = await resp.json();
@@ -48,7 +48,7 @@ const VistaDepartamento = ({ onSeleccionarSitio }) => {
 
   const manejarSeleccion = async (id) => {
     try {
-      const resp = await fetch(`http://100.123.6.123:8000/api/publico/publicaciones/detalles/${id}`);
+      const resp = await fetch(`${API_URL}/api/publico/publicaciones/detalles/${id}`);
       if (resp.ok) {
         const detalle = await resp.json();
         onSeleccionarSitio(detalle); // Aquí pasamos los datos a DetalleDestino
@@ -126,7 +126,7 @@ const VistaDepartamento = ({ onSeleccionarSitio }) => {
                 titulo={sitio.nombre}
                 categoria={sitio.distrito}
                 etiquetas={[sitio.municipio]}
-                imagen={sitio.imagen ? `http://100.123.6.123:8000/storage/preformularios/${sitio.imagen}` : null}
+                imagen={sitio.imagen ? `${API_URL}/storage/preformularios/${sitio.imagen}` : null}
               />
             </div>
           ))}

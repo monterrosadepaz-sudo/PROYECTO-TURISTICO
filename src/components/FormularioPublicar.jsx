@@ -7,7 +7,7 @@ import ModalExito from './ModalExito';
 import ModalConfirmacion from './ModalConfirmacion';
 import { divisionTerritorial } from '../data/DatosElSalvador'; 
 import { categoriasDestino, reglasPermisos, serviciosAmenidades, actividadesDestacadas } from '../data/OpcionesDestino';
-
+import { API_URL } from "../config";
 export default function FormularioPublicar() {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -55,7 +55,7 @@ export default function FormularioPublicar() {
         if (!id) return; 
         try {
             setCargando(true);
-            const res = await fetch(`http://100.123.6.123:8000/api/preformularios/detalles/${id}`);
+            const res = await fetch(`${API_URL}/api/preformularios/detalles/${id}`);
             if (res.ok) {
                 const data = await res.json();
                 
@@ -78,7 +78,7 @@ export default function FormularioPublicar() {
                 
                 if (data.imagenes) {
                     const fotosPrevias = data.imagenes.map(img => ({
-                        url: `http://100.123.6.123:8000/storage/preformularios/${img.url_imagen}`,
+                        url: `${API_URL}/storage/preformularios/${img.url_imagen}`,
                         is360: img.url_imagen.includes('-360'), 
                         isNew: false, file: null
                     }));
@@ -106,7 +106,7 @@ export default function FormularioPublicar() {
     const obtenerCorreoOficial = async () => {
       if (!sesionActiva.idusuario) return;
       try {
-        const respuesta = await fetch(`http://100.123.6.123:8000/api/usuarios/${sesionActiva.idusuario}`);
+        const respuesta = await fetch(`${API_URL}/api/usuarios/${sesionActiva.idusuario}`);
         if (respuesta.ok) {
           const datos = await respuesta.json();
           if (datos.email) setCorreoBD(datos.email);
@@ -227,7 +227,7 @@ export default function FormularioPublicar() {
     });
 
     try {
-      const urlBase = 'http://100.123.6.123:8000/api/preformularios';
+      const urlBase = `${API_URL}/api/preformularios`;
       const urlFinal = id ? `${urlBase}/actualizar/${id}` : `${urlBase}/crear`;
       
       const respuesta = await axios.post(urlFinal, data, {

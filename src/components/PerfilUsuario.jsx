@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-
+import { API_URL } from '../config';
 export default function PerfilUsuario() { 
   const navigate = useNavigate();
   
@@ -25,8 +25,8 @@ export default function PerfilUsuario() {
   });
 
   const fotoActualUrl = sesionActiva.foto_perfil 
-    ? (sesionActiva.foto_perfil.startsWith('http') ? sesionActiva.foto_perfil : `http://100.123.6.123:8000/storage/usuarios/${sesionActiva.foto_perfil}`)
-    : "http://100.123.6.123:8000/storage/usuarios/perfil.png";
+    ? (sesionActiva.foto_perfil.startsWith('http') ? sesionActiva.foto_perfil : `${API_URL}/storage/usuarios/${sesionActiva.foto_perfil}`)
+    : `${API_URL}/storage/usuarios/perfil.png`;
 
   const manejarCambioTexto = (e) => {
     setDatosPerfil({ ...datosPerfil, [e.target.name]: e.target.value });
@@ -86,7 +86,7 @@ export default function PerfilUsuario() {
 
     try {
       // URL DIRECTA AL CONTROLADOR UPDATE
-      const url = `http://100.123.6.123:8000/api/usuarios/${sesionActiva.idusuario}`;
+      const url = `${API_URL}/api/usuarios/${sesionActiva.idusuario}`;
       
       const respuesta = await fetch(url, {
         method: 'POST', 
@@ -157,7 +157,7 @@ export default function PerfilUsuario() {
                     src={fotoPreview || fotoActualUrl} 
                     className="w-full h-full object-cover" 
                     alt="Perfil" 
-                    onError={(e) => e.target.src = "http://100.123.6.123:8000/storage/usuarios/perfil.png"}
+                    onError={(e) => e.target.src = `${API_URL}/storage/usuarios/perfil.png`}
                 />
               </div>
               

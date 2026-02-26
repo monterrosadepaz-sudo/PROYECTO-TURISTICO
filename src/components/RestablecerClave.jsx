@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-
+import { API_URL } from '../config';
 export default function RestablecerClave({ alTerminar }) {
   const [claves, setClaves] = useState({ nueva: '', confirmar: '' });
   const [mensaje, setMensaje] = useState({ texto: '', tipo: '' });
@@ -17,7 +17,7 @@ export default function RestablecerClave({ alTerminar }) {
 
     try {
       // Julio dejará esta URL fija en su código, pero tú haces el envío aquí
-      const respuesta = await fetch('http://100.123.6.123:8000/api/actualizar-password', {
+      const respuesta = await fetch(`${API_URL}/api/actualizar-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password: claves.nueva })

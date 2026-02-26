@@ -5,7 +5,7 @@ import GestorLoteImagenes from './GestorLoteImagenes';
 import ModalSolicitud from './ModalSolicitud'; 
 import { divisionTerritorial } from '../data/DatosElSalvador';
 import { categoriasDestino, reglasPermisos, serviciosAmenidades, actividadesDestacadas } from '../data/OpcionesDestino';
-
+import { API_URL } from "../config";
 const etiquetasPrecios = { adultos: "Adultos", ninos: "Niños", terceraEdad: "Tercera Edad" };
 
 export default function FormularioEditar() {
@@ -112,7 +112,7 @@ export default function FormularioEditar() {
         let esOficial = false; 
 
         try {
-            const resp = await fetch(`http://100.123.6.123:8000/api/colaborador/publicaciones/detalles/${id}`, {
+            const resp = await fetch(`${API_URL}/api/colaborador/publicaciones/detalles/${id}`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
                 body: JSON.stringify({ "colaborador_id": sesionActiva.idusuario, "idpublicacion": id })
             });
@@ -120,7 +120,7 @@ export default function FormularioEditar() {
         } catch (e) { }
 
         if (!rawData) {
-            const resp = await fetch(`http://100.123.6.123:8000/api/preformularios/detalles/${id}`, { headers: { 'Accept': 'application/json' } });
+            const resp = await fetch(`${API_URL}/api/preformularios/detalles/${id}`, { headers: { 'Accept': 'application/json' } });
             if (resp.ok) { rawData = await resp.json(); }
         }
         
@@ -195,8 +195,8 @@ export default function FormularioEditar() {
           const obtenerRutaReal = (nombreImg) => {
               if (!nombreImg) return '';
               if (nombreImg.startsWith('http')) return nombreImg;
-              if (nombreImg.includes('preformulario')) return `http://100.123.6.123:8000/storage/preformularios/${nombreImg}`;
-              return `http://100.123.6.123:8000/storage/publicaciones/${nombreImg}`;
+              if (nombreImg.includes('preformulario')) return `${API_URL}/storage/preformularios/${nombreImg}`;
+              return `${API_URL}/storage/publicaciones/${nombreImg}`;
           };
 
           if (loteRaw && typeof loteRaw === 'object' && !Array.isArray(loteRaw)) {
@@ -248,15 +248,15 @@ export default function FormularioEditar() {
          };
 
          const urlTexto = extraData.esOficial 
-            ? `http://100.123.6.123:8000/api/colaborador/publicaciones/actualizar/${id}`
-            : `http://100.123.6.123:8000/api/preformularios/actualizar/${id}`;
+            ? `${API_URL}/api/colaborador/publicaciones/actualizar/${id}`
+            : `${API_URL}/api/preformularios/actualizar/${id}`;
             
          const respTexto = await fetch(urlTexto, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify(payloadTexto) });
 
          if (!respTexto.ok) throw new Error(`Falló el guardado de texto`);
 
          setMensajeProgreso("Cerrando edición y enviando a revisión final...");
-         const urlGuardarFinal = `http://100.123.6.123:8000/api/colaborador/publicaciones/guardar/${id}/${sesionActiva.idusuario}`;
+         const urlGuardarFinal = `${API_URL}/api/colaborador/publicaciones/guardar/${id}/${sesionActiva.idusuario}`;
          const respFinal = await fetch(urlGuardarFinal, { method: 'PUT', headers: { 'Accept': 'application/json' } });
 
          if (!respFinal.ok) throw new Error("El texto se guardó, pero falló el envío final a revisión.");
@@ -279,7 +279,7 @@ export default function FormularioEditar() {
       let accionEnviar = tipoAccion.toLowerCase() === 'actualizar' ? 'editar' : tipoAccion.toLowerCase();
       try {
           const payload = { "idpublicacion": id, "remitente_id": sesionActiva.idusuario, "destinatario_id": adminId || "641699ed-c755-43e3-bed8-c698f8096992", "accion": accionEnviar, "comentarios": comentario };
-          const respuesta = await fetch('http://100.123.6.123:8000/api/colaborador/solicitud/enviar', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify(payload) });
+          const respuesta = await fetch(`${API_URL}/api/colaborador/solicitud/enviar`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify(payload) });
           if (respuesta.ok) { alert(`Solicitud enviada.`); setModalVisible(false); navigate("/mis-propuestas"); } else { alert("Error al enviar."); }
       } catch (error) { alert("Error de conexión."); } finally { setProcesandoSolicitud(false); }
   };

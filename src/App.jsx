@@ -13,7 +13,7 @@ import AnalisisDestino from "./components/AnalisisDestino";
 import RestablecerClave from "./components/RestablecerClave"; 
 import MisPropuestas from "./components/MisPropuestas"; 
 import PerfilUsuario from "./components/PerfilUsuario"; 
-
+import { API_URL } from './config';
 // --- NUEVOS IMPORTS ---
 import AdminDetalleSitio from "./components/AdminDetalleSitio";
 import DetallePublico from "./components/DetallePublico"; 
@@ -28,7 +28,7 @@ function AppContent() {
   const [queriaPublicar, setQueriaPublicar] = useState(false);
   const [cargandoSesion, setCargandoSesion] = useState(true);
 
-  const API_BASE_URL = "http://100.123.6.123:8000"; 
+ const API_BASE_URL = API_URL;
 
   const construirUrlFoto = (usuario) => {
     if (!usuario) return null;

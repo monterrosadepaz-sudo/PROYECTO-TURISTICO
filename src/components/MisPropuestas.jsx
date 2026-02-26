@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-
+import { API_URL } from '../config';
 const ModalConfirmacionEliminar = ({ visible, alCerrar, alConfirmar, item, procesando }) => {
   if (!visible || !item) return null;
   const nombreSitio = item.nombre || 'este sitio';
@@ -68,7 +68,7 @@ export default function MisPropuestas() {
       let listaCombinada = [];
 
       try {
-        const urlOficial = `http://100.123.6.123:8000/api/colaborador/publicaciones/listar?colaborador_id=${sesion.idusuario}`;
+        const urlOficial = `${API_URL}/api/colaborador/publicaciones/listar?colaborador_id=${sesion.idusuario}`;
         const respOficial = await fetch(urlOficial, { method: 'GET', headers: { 'Accept': 'application/json' } });
         if (respOficial.ok) {
             const data = await respOficial.json();
@@ -77,7 +77,7 @@ export default function MisPropuestas() {
       } catch (e) { }
 
       try {
-        const urlBorradores = `http://100.123.6.123:8000/api/preformularios/listar`;
+        const urlBorradores = `${API_URL}/api/preformularios/listar`;
         const respBorrador = await fetch(urlBorradores, {
           method: 'POST',
           headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
@@ -120,8 +120,8 @@ export default function MisPropuestas() {
     const esOficial = item.isOficial;
     
     const url = esOficial
-      ? `http://100.123.6.123:8000/api/colaborador/publicaciones/borrar/${idTarget}`
-      : `http://100.123.6.123:8000/api/preformularios/borrar/${idTarget}`;
+      ? `${API_URL}/api/colaborador/publicaciones/borrar/${idTarget}`
+      : `${API_URL}/api/preformularios/borrar/${idTarget}`;
 
     try {
       const opciones = {
@@ -213,7 +213,7 @@ export default function MisPropuestas() {
                   
                   <div className="h-52 relative overflow-hidden bg-slate-900 flex items-center justify-center">
                     <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500 z-0"><span className="text-3xl mb-2 opacity-50">📷</span><span className="text-[9px] font-black uppercase tracking-widest opacity-50">Sin Foto</span></div>
-                    <img src={`http://100.123.6.123:8000/storage/${carpetaImg}/${p.imagen}`} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-90 group-hover:opacity-100 z-10 relative" onError={(e) => { if (!e.target.dataset.retried) { e.target.dataset.retried = true; const fallback = carpetaImg === 'fotos' ? 'preformularios' : 'fotos'; e.target.src = `http://100.123.6.123:8000/storage/${fallback}/${p.imagen}`; } else { e.target.style.display = 'none'; } }} alt="" />
+                    <img src={`${API_URL}/storage/${carpetaImg}/${p.imagen}`} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-90 group-hover:opacity-100 z-10 relative" onError={(e) => { if (!e.target.dataset.retried) { e.target.dataset.retried = true; const fallback = carpetaImg === 'fotos' ? 'preformularios' : 'fotos'; e.target.src = `${API_URL}/storage/${fallback}/${p.imagen}`; } else { e.target.style.display = 'none'; } }} alt="" />
                     <div className={`absolute top-5 right-5 px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest shadow-xl border-2 border-white text-white z-20 ${colorEstado}`}>{p.estado || 'DESCONOCIDO'}</div>
                   </div>
                   <div className="p-8 flex-grow space-y-4 bg-gradient-to-b from-white to-slate-50/30 relative z-20">

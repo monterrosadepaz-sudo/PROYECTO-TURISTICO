@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-
+import { API_URL } from '../config';
 import { reglasPermisos, serviciosAmenidades, actividadesDestacadas } from '../data/OpcionesDestino';
 
 // --- COMPONENTE DE GALERÍA INTELIGENTE ---
@@ -33,8 +33,8 @@ const GaleriaEvidencia = ({ imagenes, imagenPrincipal }) => {
   // 🚀 LA MAGIA ESTÁ AQUÍ: El enrutador inteligente
   const obtenerRutaSegura = (nombre) => {
       if (nombre.startsWith('http')) return nombre;
-      if (nombre.includes('publicacion')) return `http://100.123.6.123:8000/storage/publicaciones/${nombre}`;
-      return `http://100.123.6.123:8000/storage/preformularios/${nombre}`;
+      if (nombre.includes('publicacion')) return `${API_URL}/storage/publicaciones/${nombre}`;
+      return `${API_URL}/storage/preformularios/${nombre}`;
   };
 
   if (listaMultimedia.length === 0) return <div className="p-10 bg-slate-100 rounded-[3rem] text-center text-slate-400 font-bold uppercase italic">Sin evidencia visual disponible.</div>;
@@ -132,7 +132,7 @@ export default function AnalisisDestino() {
   useEffect(() => {
     const obtenerDetalles = async () => {
       try {
-        let url = `http://100.123.6.123:8000/api/admin/preformularios/${id}/analizar`;
+        let url = `${API_URL}/api/admin/preformularios/${id}/analizar`;
         let respuesta = await fetch(url, { method: 'GET', headers: { 'Accept': 'application/json' } });
         let datosEncontrados = null;
         let origen = 'preformularios';
@@ -140,7 +140,7 @@ export default function AnalisisDestino() {
         if (respuesta.ok) {
             datosEncontrados = await respuesta.json();
         } else {
-            url = `http://100.123.6.123:8000/api/admin/publicaciones/${id}`;
+            url = `${API_URL}/api/admin/publicaciones/${id}`;
             respuesta = await fetch(url, { method: 'GET', headers: { 'Accept': 'application/json' } });
             
             if (respuesta.ok) {
@@ -185,12 +185,12 @@ export default function AnalisisDestino() {
       let urlAccion = "";
       if (origenDatos === 'preformularios') {
           urlAccion = accionTipo === 'aprobado'
-            ? `http://100.123.6.123:8000/api/admin/preformularios/${id}/approve`
-            : `http://100.123.6.123:8000/api/admin/preformularios/${id}/reject`;
+            ? `${API_URL}/api/admin/preformularios/${id}/approve`
+            : `${API_URL}/api/admin/preformularios/${id}/reject`;
       } else {
           urlAccion = accionTipo === 'aprobado'
-            ? `http://100.123.6.123:8000/api/admin/publicaciones/activar/${id}`
-            : `http://100.123.6.123:8000/api/admin/publicaciones/desactivar/${id}`;
+            ? `${API_URL}/api/admin/publicaciones/activar/${id}`
+            : `${API_URL}/api/admin/publicaciones/desactivar/${id}`;
       }
 
       const resAccion = await fetch(urlAccion, {
@@ -208,19 +208,18 @@ export default function AnalisisDestino() {
       
       if (idColaborador) {
           const urlNotificacion = solicitudOriginal?.idmensaje 
-              ? 'http://100.123.6.123:8000/api/admin/solicitud/responder' 
-              : 'http://100.123.6.123:8000/api/colaborador/solicitud/enviar'; 
+          ? `${API_URL}/api/admin/solicitudes/responder` 
+           : `${API_URL}/api/admin/solicitudes/responder`; 
 
           const payloadNotificacion = {
-              idpublicacion: id,
-              remitente_id: sesionActiva.idusuario,
-              destinatario_id: idColaborador,
-              accion: accionTipo === 'aprobado' ? 'aprobar' : 'rechazar',
-              comentarios: accionTipo === 'aprobado' 
-                  ? "Tu sitio ha sido revisado y activado. Ya es visible para los turistas." 
-                  : "Tu sitio ha sido desactivado o rechazado. Revisa tus propuestas."
-          };
-
+    idpublicacion: id,
+    remitente_id: sesionActiva.idusuario,
+    destinatario_id: idColaborador, // <-- De aquí sacamos el dato
+    accion: accionTipo === 'aprobado' ? 'aprobar' : 'rechazar',
+    comentarios: "Tu sitio ha sido revisado y publicado ahora es visible para todos",
+    // 🔥 TU IDEA GENIAL APLICADA EN EL ARCHIVO CORRECTO:
+    respuesta_a: solicitudOriginal?.idmensaje || idColaborador 
+};
           if (solicitudOriginal?.idmensaje) {
               payloadNotificacion.respuesta_a = solicitudOriginal.idmensaje;
           }

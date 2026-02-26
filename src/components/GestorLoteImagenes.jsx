@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-
+import { API_URL } from '../config';
 export default function GestorLoteImagenes({ idpublicacion, imagenesCargadas, alTerminar }) {
   
   // ==========================================
@@ -76,7 +76,7 @@ export default function GestorLoteImagenes({ idpublicacion, imagenesCargadas, al
     setCargandoEnvio(true);
     try {
         const payload = { cambios };
-        const url = `http://100.123.6.123:8000/api/colaborador/publicaciones/lotes/editar/${idpublicacion}`;
+        const url = `${API_URL}/api/colaborador/publicaciones/lotes/editar/${idpublicacion}`;
         
         const res = await fetch(url, {
             method: 'POST',
@@ -163,7 +163,7 @@ export default function GestorLoteImagenes({ idpublicacion, imagenesCargadas, al
               form.append('archivos_nuevos[]', archivoRenombrado);
           });
 
-          const url = `http://100.123.6.123:8000/api/colaborador/preformularios/lotes/editar/${idpublicacion}`;
+          const url = `${API_URL}/api/colaborador/preformularios/lotes/editar/${idpublicacion}`;
           const res = await fetch(url, {
               method: 'POST',
               headers: { 'Accept': 'application/json' },
@@ -227,8 +227,15 @@ export default function GestorLoteImagenes({ idpublicacion, imagenesCargadas, al
                             </div>
                         </>
                     ) : (
-                        <img src={img.url} alt="Miniatura" className="w-full h-full object-cover bg-slate-100" onError={(e) => { e.target.src = 'https://via.placeholder.com/600x400?text=Error'; }}/>
-                    )}
+<img 
+  src={img.url} 
+  alt="Miniatura" 
+  className="w-full h-full object-cover bg-slate-100" 
+  onError={(e) => { 
+    e.target.onerror = null;
+    e.target.src = '/default.jpg'; 
+  }}
+/>                    )}
 
                     {estado && (
                         <div className={`absolute inset-0 flex flex-col items-center justify-center backdrop-blur-sm transition-all z-10 ${estado === 'eliminar' ? 'bg-red-500/30' : 'bg-blue-600/30'}`}>

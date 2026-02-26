@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-
+import { API_URL } from '../config';
 export default function SuperDashboard() {
   const [listaAdmins, setListaAdmins] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -13,7 +13,7 @@ export default function SuperDashboard() {
   const cargarUsuarios = async () => {
     try {
       setError(null);
-      const res = await fetch('http://100.123.6.123:8000/api/usuarios', {
+      const res = await fetch(`${API_URL}/api/usuarios`, {
         method: 'GET',
         headers: { 'Accept': 'application/json' },
         credentials: 'include' 
@@ -36,8 +36,8 @@ export default function SuperDashboard() {
     e.preventDefault();
     // Julio usa el ID del usuario en la URL para el PUT
     const url = modoEdicion 
-      ? `http://100.123.6.123:8000/api/usuarios/${adminSeleccionado.idusuario}`
-      : 'http://100.123.6.123:8000/api/usuarios';
+      ? `${API_URL}/api/usuarios/${adminSeleccionado.idusuario}`
+      : `${API_URL}/api/usuarios`;
     
     try {
       const res = await fetch(url, {
@@ -78,7 +78,7 @@ export default function SuperDashboard() {
     if(!confirm("¿Estás seguro de eliminar este administrador?")) return;
     try {
       // Usamos el idusuario para la ruta DELETE
-      const res = await fetch(`http://100.123.6.123:8000/api/usuarios/${idusuario}`, {
+      const res = await fetch(`${API_URL}/api/usuarios/${idusuario}`, {
         method: 'DELETE',
         headers: { 'Accept': 'application/json' },
         credentials: 'include'

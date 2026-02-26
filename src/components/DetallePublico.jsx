@@ -3,7 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import MapaFormulario from './MapaFormulario'; 
 import { ReactPhotoSphereViewer } from 'react-photo-sphere-viewer';
 import { reglasPermisos, serviciosAmenidades, actividadesDestacadas } from '../data/OpcionesDestino';
-
+import { API_URL } from '../config'; 
+// (Asegúrate de que la ruta '../config' sea correcta dependiendo de en qué subcarpeta esté DetallePublico.jsx)
 const etiquetasTarifas = {
     adultos: "Adultos",
     ninos: "Niños",
@@ -52,7 +53,7 @@ export default function DetallePublico() {
   useEffect(() => {
     const cargarDestino = async () => {
       try {
-        const url = `http://100.123.6.123:8000/api/publico/publicaciones/detalles/${id}`;
+        const url = `${API_URL}/api/publico/publicaciones/detalles/${id}`;
         const resp = await fetch(url);
         if (resp.ok) {
           const data = await resp.json();
@@ -70,10 +71,10 @@ export default function DetallePublico() {
           const loteProcesado = { planas: [], panoramas: [], videos: [] };
           
           const procesarUrl = (nombre) => {
-              if (nombre.startsWith('http')) return nombre;
-              if (nombre.includes('publicacion')) return `http://100.123.6.123:8000/storage/publicaciones/${nombre}`;
-              return `http://100.123.6.123:8000/storage/preformularios/${nombre}`;
-          };
+    if (nombre.startsWith('http')) return nombre;
+    if (nombre.includes('publicacion')) return `${API_URL}/storage/publicaciones/${nombre}`;
+    return `${API_URL}/storage/preformularios/${nombre}`;
+};
 
           if (loteRaw && typeof loteRaw === 'object' && !Array.isArray(loteRaw)) {
               if (loteRaw.plana) loteProcesado.planas = loteRaw.plana.map(procesarUrl);
