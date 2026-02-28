@@ -44,39 +44,30 @@ export default function Home() {
 
       {/* Buscador y Grid */}
       <div className="max-w-md mx-auto sticky top-20 z-40 px-4">
-        <input type="text" placeholder="Buscar por nombre o zona..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm outline-none font-medium" />
+        <input type="text" placeholder="Buscar por nombre o zona..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm outline-none font-medium text-slate-600" />
       </div>
 
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pb-20">
         {departamentosFiltrados.map((depto) => {
           const idParaDOM = depto.nombre.toLowerCase().replace(/\s+/g, '_');
           
-          // --- LÓGICA DE BLOQUEO: Solo habilitamos La Paz ---
-          const esLaPaz = depto.nombre.toLowerCase() === 'la paz';
-
           return (
             <div 
                 key={depto.id} 
                 id={idParaDOM} 
-                className={`bg-white p-6 rounded-[2rem] shadow-sm border transition-all duration-500 
+                className={`bg-white p-6 rounded-[2rem] shadow-sm border transition-all duration-500 hover:shadow-lg group
                 ${deptoResaltado === idParaDOM ? 'border-blue-500 ring-4 ring-blue-50' : 'border-slate-100'}
-                ${!esLaPaz ? 'opacity-70 grayscale-[0.5]' : ''}`}
+                `}
             >
               <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">{depto.zona}</span>
-              <h3 className="text-xl font-bold mt-1 text-slate-800">{depto.nombre}</h3>
+              <h3 className="text-xl font-bold mt-1 text-slate-800 group-hover:text-blue-600 transition-colors">{depto.nombre}</h3>
               
-              {esLaPaz ? (
-                <button 
-                  onClick={() => navigate(`/departamento/${depto.nombre}`)}
-                  className="mt-4 flex items-center text-sm font-bold text-blue-600 hover:translate-x-1 transition-transform"
-                >
-                  Ver destinos <span className="ml-1">→</span>
-                </button>
-              ) : (
-                <div className="mt-4 flex items-center text-sm font-bold text-slate-300 cursor-not-allowed">
-                  Próximamente <span className="ml-2 text-xs">🔒</span>
-                </div>
-              )}
+              <button 
+                onClick={() => navigate(`/departamento/${depto.nombre}`)}
+                className="mt-4 flex items-center text-sm font-bold text-blue-600 hover:translate-x-1 hover:text-blue-800 transition-all"
+              >
+                Ver destinos <span className="ml-1">→</span>
+              </button>
             </div>
           );
         })}

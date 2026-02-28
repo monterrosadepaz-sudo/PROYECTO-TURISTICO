@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_URL } from '../config';
+
 export default function PerfilUsuario() { 
   const navigate = useNavigate();
   
@@ -16,10 +17,14 @@ export default function PerfilUsuario() {
   const [seccionAEditar, setSeccionAEditar] = useState(null); 
   const [exito, setExito] = useState(false);
 
+  // 🔥 NUEVO: Extraemos solo los 8 números si el usuario ya tiene teléfono guardado
+  const telefonoExtraido = sesionActiva.numero ? sesionActiva.numero.replace('+503', '') : '';
+
   const [datosPerfil, setDatosPerfil] = useState({
     nombre: sesionActiva.nombre || '',
     username: sesionActiva.username || '',
     email: sesionActiva.email || '',
+    telefono: telefonoExtraido, // Estado inicial del teléfono
     password: '',
     confirmPassword: ''
   });
@@ -32,6 +37,12 @@ export default function PerfilUsuario() {
     setDatosPerfil({ ...datosPerfil, [e.target.name]: e.target.value });
   };
 
+  // 🔥 NUEVO: Manejador exclusivo para el teléfono (solo 8 números)
+  const manejarTelefono = (e) => {
+    const soloNumeros = e.target.value.replace(/\D/g, '').slice(0, 8);
+    setDatosPerfil({ ...datosPerfil, telefono: soloNumeros });
+  };
+
   const manejarArchivo = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -40,16 +51,9 @@ export default function PerfilUsuario() {
     }
   };
 
-  // --- GENERADOR DE NOMBRE EXACTO (SEGÚN REGEX DE JULIO) ---
   const generarNombreFotoPerfil = (file, uuidUsuario) => {
-    // 1. Aleatorio de 10 caracteres (letras y números)
     const aleatorio = Math.random().toString(36).substring(2, 12).replace(/[^a-z0-9]/g, '');
-    
-    // 2. Extensión original
     const extension = file.name.split('.').pop().toLowerCase();
-
-    // 3. FORMATO REQUERIDO POR EL BACKEND:
-    // Regex: 0000 + UUID(36 chars) + perfil- + ALEATORIO(10 chars) + .EXT
     return `0000${uuidUsuario}perfil-${aleatorio}.${extension}`;
   };
 
@@ -60,23 +64,27 @@ export default function PerfilUsuario() {
       return alert("Las contraseñas no coinciden.");
     }
 
+    if (seccionAEditar === 'telefono' && datosPerfil.telefono.length !== 8) {
+      return alert("El número de teléfono debe tener exactamente 8 dígitos.");
+    }
+
     setCargando(true);
     const data = new FormData();
     
-    // MÉTODO PUT FAKEADO PARA LARAVEL
     data.append('_method', 'PUT'); 
     
-    // Datos de texto
     data.append('nombre', datosPerfil.nombre || sesionActiva.nombre || '');
     data.append('username', datosPerfil.username || sesionActiva.username || 'usuario_sv');
     data.append('email', datosPerfil.email || sesionActiva.email || '');
 
-    // ARCHIVO CON NOMBRE CORREGIDO
+    // 🔥 NUEVO: Se envía el teléfono a la BD con el formato esperado
+    const telefonoFinal = datosPerfil.telefono ? `+503${datosPerfil.telefono}` : sesionActiva.numero;
+    if (telefonoFinal) {
+      data.append('numero', telefonoFinal);
+    }
+
     if (archivoFoto) {
-        // Pasamos el ID del usuario para construir el nombre
         const nombreFinal = generarNombreFotoPerfil(archivoFoto, sesionActiva.idusuario);
-        console.log("Enviando foto con nombre VALIDO:", nombreFinal);
-        
         data.append('foto_perfil', archivoFoto, nombreFinal);
     }
 
@@ -85,7 +93,6 @@ export default function PerfilUsuario() {
     }
 
     try {
-      // URL DIRECTA AL CONTROLADOR UPDATE
       const url = `${API_URL}/api/usuarios/${sesionActiva.idusuario}`;
       
       const respuesta = await fetch(url, {
@@ -102,6 +109,7 @@ export default function PerfilUsuario() {
           nombre: datosPerfil.nombre || sesionActiva.nombre,
           username: datosPerfil.username || sesionActiva.username,
           email: datosPerfil.email || sesionActiva.email,
+          numero: telefonoFinal, // Actualizamos el LocalStorage
           foto_perfil: resultado.usuario?.foto_perfil || resultado.foto_perfil || sesionActiva.foto_perfil
         };
 
@@ -152,13 +160,16 @@ export default function PerfilUsuario() {
           <div className="flex flex-col items-center space-y-6">
             
             <div className="relative group z-10">
-              <div className="w-40 h-40 rounded-full border-[10px] border-white shadow-2xl overflow-hidden bg-slate-200 relative">
-                <img 
-                    src={fotoPreview || fotoActualUrl} 
-                    className="w-full h-full object-cover" 
-                    alt="Perfil" 
-                    onError={(e) => e.target.src = `${API_URL}/storage/usuarios/perfil.png`}
-                />
+              {/* 🔥 NUEVO: Aro Premium Dorado */}
+              <div className="w-40 h-40 rounded-full p-1.5 bg-gradient-to-tr from-amber-400 via-yellow-300 to-amber-600 shadow-2xl relative transition-transform group-hover:scale-105">
+                <div className="w-full h-full rounded-full border-[6px] border-white overflow-hidden bg-slate-200 relative">
+                  <img 
+                      src={fotoPreview || fotoActualUrl} 
+                      className="w-full h-full object-cover" 
+                      alt="Perfil" 
+                      onError={(e) => e.target.src = `${API_URL}/storage/usuarios/perfil.png`}
+                  />
+                </div>
               </div>
               
               <label className="absolute bottom-1 right-1 bg-blue-600 w-12 h-12 rounded-full shadow-lg cursor-pointer hover:bg-blue-700 border-4 border-white transition-transform active:scale-95 flex items-center justify-center z-20">
@@ -179,7 +190,13 @@ export default function PerfilUsuario() {
                   <div className="space-y-4">
                     <h4 className="text-3xl font-black text-slate-800 uppercase italic leading-none tracking-tighter">{sesionActiva.nombre || "Usuario"}</h4>
                     <p className="text-blue-600 font-bold text-sm underline underline-offset-4 tracking-tighter italic">{sesionActiva.email || "Sin correo"}</p>
-                    <span className="inline-block bg-blue-50 px-6 py-2 rounded-full text-[10px] font-black text-blue-600 uppercase tracking-widest">{sesionActiva.rol || 'Colaborador'}</span>
+                    {/* 🔥 NUEVO: Mostramos el número en el perfil */}
+                    {sesionActiva.numero && (
+                      <p className="text-slate-500 font-bold text-xs uppercase tracking-widest mt-2">📱 {sesionActiva.numero}</p>
+                    )}
+                    <span className="inline-block bg-blue-50 px-6 py-2 rounded-full text-[10px] font-black text-amber-500 border border-amber-200 uppercase tracking-widest shadow-sm">
+                      {sesionActiva.rol || 'Colaborador'}
+                    </span>
                   </div>
                   {!archivoFoto && (
                     <button onClick={() => setEditando(true)} className="w-full bg-slate-100 hover:bg-slate-200 text-slate-500 font-black py-5 rounded-2xl transition-all text-[10px] uppercase tracking-[0.2em]">Editar Datos</button>
@@ -190,9 +207,11 @@ export default function PerfilUsuario() {
                   {!seccionAEditar ? (
                     <div className="grid grid-cols-1 gap-3 animate-in fade-in slide-in-from-bottom-4">
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center mb-2 italic">¿Qué deseas modificar?</p>
-                      {['nombre', 'username', 'correo', 'password'].map((item) => (
+                      
+                      {/* 🔥 NUEVO: Opción de Teléfono en el menú */}
+                      {['nombre', 'username', 'correo', 'telefono', 'password'].map((item) => (
                         <button key={item} onClick={() => setSeccionAEditar(item)} className="w-full py-4 px-6 bg-slate-50 hover:bg-blue-50 text-slate-700 font-black text-[11px] uppercase tracking-widest rounded-2xl border border-slate-100 text-left flex justify-between items-center group transition-all">
-                          {item === 'password' ? 'Contraseña' : item}
+                          {item === 'password' ? 'Contraseña' : item === 'telefono' ? 'Teléfono' : item}
                           <span className="text-blue-300 group-hover:text-blue-600">→</span>
                         </button>
                       ))}
@@ -205,9 +224,27 @@ export default function PerfilUsuario() {
                           <p className="text-[9px] font-black text-slate-400 uppercase italic">Editando {seccionAEditar}</p>
                       </div>
 
-                      {seccionAEditar === 'nombre' && <input name="nombre" value={datosPerfil.nombre} onChange={manejarCambioTexto} type="text" placeholder="Nuevo Usuario" className="w-full px-6 py-4 rounded-2xl bg-slate-50 border-none text-sm font-bold italic outline-none focus:ring-2 focus:ring-blue-500/20" />}
-                      {seccionAEditar === 'username' && <input name="username" value={datosPerfil.username} onChange={manejarCambioTexto} type="text" placeholder="Nuevo Nombre" className="w-full px-6 py-4 rounded-2xl bg-slate-50 border-none text-sm font-bold italic outline-none focus:ring-2 focus:ring-blue-500/20" />}
+                      {seccionAEditar === 'nombre' && <input name="nombre" value={datosPerfil.nombre} onChange={manejarCambioTexto} type="text" placeholder="Nuevo Nombre Completo" className="w-full px-6 py-4 rounded-2xl bg-slate-50 border-none text-sm font-bold italic outline-none focus:ring-2 focus:ring-blue-500/20" />}
+                      {seccionAEditar === 'username' && <input name="username" value={datosPerfil.username} onChange={manejarCambioTexto} type="text" placeholder="Nuevo Usuario" className="w-full px-6 py-4 rounded-2xl bg-slate-50 border-none text-sm font-bold italic outline-none focus:ring-2 focus:ring-blue-500/20" />}
                       {seccionAEditar === 'correo' && <input name="email" value={datosPerfil.email} onChange={manejarCambioTexto} type="email" placeholder="Nuevo Correo" className="w-full px-6 py-4 rounded-2xl bg-slate-50 border-none text-sm font-bold italic outline-none focus:ring-2 focus:ring-blue-500/20" />}
+                      
+                      {/* 🔥 NUEVO: Input de Teléfono blindado */}
+                      {seccionAEditar === 'telefono' && (
+                        <div className="flex rounded-2xl bg-slate-50 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all">
+                          <span className="inline-flex items-center pl-6 pr-3 text-slate-500 font-black text-sm italic">
+                            +503
+                          </span>
+                          <input 
+                            name="telefono" 
+                            type="tel" 
+                            value={datosPerfil.telefono} 
+                            onChange={manejarTelefono} 
+                            placeholder="71234567" 
+                            className="w-full py-4 pr-6 bg-transparent border-none text-sm font-bold italic outline-none" 
+                          />
+                        </div>
+                      )}
+
                       {seccionAEditar === 'password' && (
                         <>
                           <input name="password" onChange={manejarCambioTexto} type="password" placeholder="Nueva Contraseña" className="w-full px-6 py-4 rounded-2xl bg-slate-50 border-none text-sm font-bold italic outline-none focus:ring-2 focus:ring-blue-500/20 mb-3" />

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { API_URL } from '../config';
-export default function GestorLoteImagenes({ idpublicacion, imagenesCargadas, alTerminar }) {
+
+export default function GestorLoteImagenes({ idpublicacion, imagenesCargadas, alTerminar, youtubeActual }) {
   
   // ==========================================
   // ESTADOS DEL WIZARD
@@ -10,9 +11,11 @@ export default function GestorLoteImagenes({ idpublicacion, imagenesCargadas, al
 
   const [intenciones, setIntenciones] = useState({}); 
   const [listaEsperando, setListaEsperando] = useState([]); 
-  
-  // Guardamos: { "nombre.jpg": { file: File, preview: "blob:...", is360: false } }
   const [archivosFisicos, setArchivosFisicos] = useState({}); 
+
+  // 🔥 NUEVOS ESTADOS PARA YOUTUBE
+  const [eliminarYoutube, setEliminarYoutube] = useState(false);
+  const [nuevoYoutube, setNuevoYoutube] = useState('');
 
   // ==========================================
   // GENERADOR INTELIGENTE DE NOMBRES
@@ -21,7 +24,7 @@ export default function GestorLoteImagenes({ idpublicacion, imagenesCargadas, al
       if (!nombreAnterior) return null;
       const partes = nombreAnterior.split('-');
       if (partes.length >= 2) {
-          return partes[1]; // Rescatamos el lote intacto (ej: g3vq7n8s11)
+          return partes[1]; 
       }
       return null;
   };
@@ -33,7 +36,6 @@ export default function GestorLoteImagenes({ idpublicacion, imagenesCargadas, al
     const yyyy = d.getFullYear();
     const fechaStr = `${dd}${mm}${yyyy}`;
     
-    // Intentamos rescatar el lote original, si falla por algo raro, creamos uno de emergencia
     let loteID = extraerLote(nombreAnterior);
     if (!loteID) {
         const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
@@ -46,7 +48,6 @@ export default function GestorLoteImagenes({ idpublicacion, imagenesCargadas, al
     
     const sufijo360 = is360 ? '-360' : '';
 
-    // Ensamblamos manteniendo el formato sagrado
     return `0000${fechaStr}publicacion-${loteID}-${index}${sufijo360}.${ext}`;
   };
 
@@ -68,8 +69,18 @@ export default function GestorLoteImagenes({ idpublicacion, imagenesCargadas, al
         nombre: nombre
     }));
 
+    // 🔥 Si el usuario quiere borrar o cambiar el video actual, lo mandamos a eliminar
+    if (eliminarYoutube && youtubeActual) {
+        cambios.push({
+            accion: 'eliminar',
+            video_link: youtubeActual
+        });
+    }
+
+    // Si no hay cambios físicos que preparar, saltamos directo al Paso 2 (Por si solo quiere agregar un video)
     if (cambios.length === 0) {
-        alert("No has seleccionado ninguna acción. Cierra esta ventana si no deseas editar imágenes.");
+        setListaEsperando([]);
+        setFase(2);
         return;
     }
 
@@ -92,8 +103,9 @@ export default function GestorLoteImagenes({ idpublicacion, imagenesCargadas, al
             setListaEsperando(data.esperando);
             setFase(2);
         } else {
-            alert("Imágenes eliminadas correctamente de la base de datos.");
-            alTerminar(); 
+            // Si solo mandó a eliminar (fotos o video), termina aquí.
+            alert("Archivos eliminados correctamente de la base de datos.");
+            setFase(2); // Pasamos al paso 2 por si quiere añadir el link de youtube nuevo
         }
     } catch (error) {
         alert(error.message);
@@ -114,7 +126,7 @@ export default function GestorLoteImagenes({ idpublicacion, imagenesCargadas, al
           [nombreEsperado]: {
               file: file,
               preview: URL.createObjectURL(file),
-              is360: false // Por defecto no es 360
+              is360: false 
           }
       }));
   };
@@ -149,19 +161,17 @@ export default function GestorLoteImagenes({ idpublicacion, imagenesCargadas, al
           const form = new FormData();
           
           listaEsperando.forEach((nombreAnterior, index) => {
-              // 1. Le devolvemos a Julio el nombre viejo
               form.append('esperando[]', nombreAnterior);
-              
-              // 2. Extraemos el archivo y estado 360
               const fileData = archivosFisicos[nombreAnterior];
-              
-              // 3. Rescatamos el lote original y armamos el nombre
               const nuevoNombreValidado = generarNombreValido(index + 1, fileData.file, nombreAnterior, fileData.is360);
-              
-              // 4. Renombramos y empaquetamos
               const archivoRenombrado = new File([fileData.file], nuevoNombreValidado, { type: fileData.file.type });
               form.append('archivos_nuevos[]', archivoRenombrado);
           });
+
+          // 🔥 Mandamos el nuevo link de YouTube si el usuario lo llenó
+          if (nuevoYoutube.trim() !== '') {
+              form.append('video_link', nuevoYoutube.trim());
+          }
 
           const url = `${API_URL}/api/colaborador/preformularios/lotes/editar/${idpublicacion}`;
           const res = await fetch(url, {
@@ -175,7 +185,7 @@ export default function GestorLoteImagenes({ idpublicacion, imagenesCargadas, al
               throw new Error(errorData.error || "Error al aplicar las nuevas imágenes en el servidor.");
           }
 
-          alert("¡Nuevas imágenes aplicadas correctamente!");
+          alert("¡Nuevas imágenes/enlaces aplicados correctamente!");
           alTerminar(); 
 
       } catch (error) {
@@ -196,7 +206,7 @@ export default function GestorLoteImagenes({ idpublicacion, imagenesCargadas, al
             <p className="text-xs font-medium text-slate-400 mt-1 uppercase tracking-widest">
                 {fase === 1 
                     ? 'Selecciona qué deseas eliminar o cambiar.' 
-                    : 'Sube las imágenes correspondientes a los espacios que vas a sustituir.'}
+                    : 'Sube las imágenes correspondientes o agrega tu enlace de YouTube.'}
             </p>
         </div>
         <div className="flex gap-2">
@@ -208,17 +218,43 @@ export default function GestorLoteImagenes({ idpublicacion, imagenesCargadas, al
       {fase === 1 && (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                
+                {/* 🔥 TARJETA DE YOUTUBE EN FASE 1 */}
+                {youtubeActual && (
+                    <div 
+                        onClick={() => setEliminarYoutube(!eliminarYoutube)}
+                        className={`relative aspect-video rounded-2xl overflow-hidden border-4 transition-all shadow-sm group cursor-pointer
+                            ${eliminarYoutube ? 'border-red-500 scale-95 opacity-80' : 'border-slate-50 hover:border-red-200'}`}
+                    >
+                        <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center p-4 text-center">
+                            <span className="text-red-500 text-4xl mb-2">▶</span>
+                            <span className="text-[9px] text-slate-300 font-bold break-all">{youtubeActual}</span>
+                            <span className="text-white font-black text-[8px] bg-red-600 px-2 py-1 rounded mt-3 uppercase tracking-widest">YouTube</span>
+                        </div>
+                        {eliminarYoutube && (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center backdrop-blur-sm bg-red-500/30 z-10">
+                                <span className="text-4xl drop-shadow-md text-red-600">🗑️</span>
+                                <span className="text-white font-black uppercase tracking-widest text-[10px] mt-2 bg-slate-900/60 px-3 py-1 rounded-full">Se eliminará</span>
+                            </div>
+                        )}
+                        <div className="absolute top-2 left-2 right-2 flex justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                            <span className={`py-2 px-4 rounded-lg font-black text-[9px] uppercase tracking-widest transition-all ${eliminarYoutube ? 'bg-red-600 text-white' : 'bg-white text-slate-800'}`}>
+                                {eliminarYoutube ? 'Deshacer' : 'Borrar Enlace'}
+                            </span>
+                        </div>
+                    </div>
+                )}
+
+                {/* IMÁGENES NORMALES */}
                 {imagenesCargadas.map((img) => {
                 const estado = intenciones[img.nombreOriginal]; 
-                const esVideo = img.url.match(/\.(mp4|mov|avi|wmv|webm)$/i); // 🚀 LA DETECCIÓN DE VIDEO
+                const esVideo = img.url.match(/\.(mp4|mov|avi|wmv|webm)$/i); 
                 
                 return (
                     <div key={img.nombreOriginal} className={`relative aspect-video rounded-2xl overflow-hidden border-4 transition-all shadow-sm group
                         ${estado === 'eliminar' ? 'border-red-500 scale-95 opacity-80' : 
                         estado === 'sustituir' ? 'border-blue-500 scale-105 shadow-blue-200' : 'border-slate-50'}`}
                     >
-                    
-                    {/* 🚀 RENDERIZADO CONDICIONAL DE VIDEO O IMAGEN */}
                     {esVideo ? (
                         <>
                             <video src={`${img.url}#t=0.001`} className="w-full h-full object-cover bg-slate-900" preload="metadata" muted />
@@ -227,15 +263,16 @@ export default function GestorLoteImagenes({ idpublicacion, imagenesCargadas, al
                             </div>
                         </>
                     ) : (
-<img 
-  src={img.url} 
-  alt="Miniatura" 
-  className="w-full h-full object-cover bg-slate-100" 
-  onError={(e) => { 
-    e.target.onerror = null;
-    e.target.src = '/default.jpg'; 
-  }}
-/>                    )}
+                        <img 
+                          src={img.url} 
+                          alt="Miniatura" 
+                          className="w-full h-full object-cover bg-slate-100" 
+                          onError={(e) => { 
+                            e.target.onerror = null;
+                            e.target.src = '/default.jpg'; 
+                          }}
+                        />                    
+                    )}
 
                     {estado && (
                         <div className={`absolute inset-0 flex flex-col items-center justify-center backdrop-blur-sm transition-all z-10 ${estado === 'eliminar' ? 'bg-red-500/30' : 'bg-blue-600/30'}`}>
@@ -253,7 +290,7 @@ export default function GestorLoteImagenes({ idpublicacion, imagenesCargadas, al
                 })}
             </div>
             <div className="mt-8 flex justify-end">
-                <button onClick={enviarPreparacion} disabled={cargandoEnvio || Object.keys(intenciones).length === 0} className="bg-slate-900 hover:bg-black disabled:bg-slate-300 text-white px-8 py-5 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all flex items-center gap-3">
+                <button onClick={enviarPreparacion} disabled={cargandoEnvio} className="bg-slate-900 hover:bg-black text-white px-8 py-5 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all flex items-center gap-3">
                     {cargandoEnvio ? <span className="animate-pulse">Procesando Intenciones...</span> : 'Continuar al Paso 2 ❯'}
                 </button>
             </div>
@@ -262,13 +299,40 @@ export default function GestorLoteImagenes({ idpublicacion, imagenesCargadas, al
 
       {fase === 2 && (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-500">
-              <div className="bg-blue-50 border-l-4 border-blue-600 p-6 rounded-2xl mb-6 flex items-start gap-4">
-                  <span className="text-2xl mt-1">🔄</span>
-                  <div>
-                    <p className="text-blue-800 font-black text-[11px] uppercase tracking-widest italic">El servidor ha autorizado las sustituciones.</p>
-                    <p className="text-blue-600/80 font-bold text-[10px] mt-1">Por favor, sube los archivos de reemplazo. Si subes fotos 360°, recuerda marcarlas.</p>
-                  </div>
+              
+              {/* 🔥 INPUT NUEVO YOUTUBE EN FASE 2 */}
+              <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200 mt-6 mb-8">
+                  <h3 className="text-red-600 font-black text-[10px] uppercase tracking-widest mb-3 flex items-center gap-2">
+                      <span className="bg-red-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[8px]">▶</span>
+                      Enlace de Video YouTube
+                  </h3>
+                  {(!youtubeActual || eliminarYoutube) ? (
+                      <div>
+                          <input 
+                              type="url" 
+                              placeholder="Ej: https://youtu.be/hEdzv7D4CbQ" 
+                              value={nuevoYoutube} 
+                              onChange={e => setNuevoYoutube(e.target.value)}
+                              className="w-full px-5 py-4 rounded-2xl border border-slate-200 focus:border-red-500 outline-none text-sm font-bold italic shadow-sm"
+                          />
+                          <p className="text-[8px] font-bold text-slate-400 uppercase mt-2 ml-2">Pega aquí el enlace para agregarlo a la galería.</p>
+                      </div>
+                  ) : (
+                      <p className="text-[9px] text-slate-500 font-bold uppercase p-4 border-2 border-dashed border-slate-200 rounded-xl text-center">
+                          Ya tienes un enlace vinculado. Si deseas cambiarlo, vuelve al Paso 1 y elimínalo primero.
+                      </p>
+                  )}
               </div>
+
+              {listaEsperando.length > 0 && (
+                <div className="bg-blue-50 border-l-4 border-blue-600 p-6 rounded-2xl mb-6 flex items-start gap-4">
+                    <span className="text-2xl mt-1">🔄</span>
+                    <div>
+                        <p className="text-blue-800 font-black text-[11px] uppercase tracking-widest italic">El servidor espera las fotos de reemplazo.</p>
+                        <p className="text-blue-600/80 font-bold text-[10px] mt-1">Por favor, sube los archivos físicos a continuación. Si subes fotos 360°, recuerda marcarlas.</p>
+                    </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {listaEsperando.map((nombreEsperado, index) => {
@@ -288,7 +352,6 @@ export default function GestorLoteImagenes({ idpublicacion, imagenesCargadas, al
                                           <img src={dataArchivo.preview} className={`absolute inset-0 w-full h-full object-cover opacity-50 transition-transform ${dataArchivo.is360 ? 'scale-110 saturate-150' : ''}`} alt="preview" />
                                       )}
 
-                                      {/* BOTÓN ELIMINAR SELECCIÓN */}
                                       <button 
                                         onClick={() => removerArchivo(nombreEsperado)} 
                                         className="absolute top-3 right-3 bg-red-500 text-white w-8 h-8 flex items-center justify-center rounded-full font-black text-xs z-30 shadow-lg hover:bg-red-600 transition-all"
@@ -297,7 +360,6 @@ export default function GestorLoteImagenes({ idpublicacion, imagenesCargadas, al
                                         ✕
                                       </button>
 
-                                      {/* BOTÓN MARCAR 360 (SOLO IMÁGENES) */}
                                       {!esVideo && (
                                           <button 
                                             onClick={() => toggle360(nombreEsperado)} 
@@ -309,7 +371,6 @@ export default function GestorLoteImagenes({ idpublicacion, imagenesCargadas, al
                                           </button>
                                       )}
 
-                                      {/* ETIQUETA INFORMATIVA */}
                                       <div className="relative z-10 bg-white/90 backdrop-blur-sm px-4 py-3 rounded-xl shadow-lg pointer-events-none">
                                           <p className="text-green-700 font-black text-[10px] uppercase tracking-widest">Archivo Listo</p>
                                           <p className="text-slate-600 font-bold text-[8px] mt-1 max-w-[150px] truncate">{dataArchivo.file.name}</p>
@@ -340,7 +401,7 @@ export default function GestorLoteImagenes({ idpublicacion, imagenesCargadas, al
                     disabled={cargandoEnvio}
                     className="bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-300 text-white px-8 py-5 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-emerald-500/30 transition-all flex items-center gap-3"
                 >
-                    {cargandoEnvio ? <span className="animate-pulse">Subiendo archivos...</span> : '✔️ Aplicar Nuevas Fotos'}
+                    {cargandoEnvio ? <span className="animate-pulse">Subiendo archivos...</span> : '✔️ Aplicar Cambios Finales'}
                 </button>
             </div>
           </div>

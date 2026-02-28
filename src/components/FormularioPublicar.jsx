@@ -8,16 +8,15 @@ import ModalConfirmacion from './ModalConfirmacion';
 import { divisionTerritorial } from '../data/DatosElSalvador'; 
 import { categoriasDestino, reglasPermisos, serviciosAmenidades, actividadesDestacadas } from '../data/OpcionesDestino';
 import { API_URL } from "../config";
+
 export default function FormularioPublicar() {
   const navigate = useNavigate();
   const { id } = useParams();
 
-  const sesionActiva = JSON.parse(localStorage.getItem('usuarioLogueado')) || {
-    idusuario: "eec174fd-7093-4efe-82a6-a7828ccf1703", 
-    nombre: "Miguel Sanchez", correo: "miguelpacas796@gmail.com", rol: "Colaborador", telefono: "00000000"
-  };
+  // 🔥 PARCHE DE SEGURIDAD RESTAURADO (Sin datos hardcodeados)
+  const sesionActiva = JSON.parse(localStorage.getItem('usuarioLogueado')) || {};
 
-  const [correoBD, setCorreoBD] = useState(sesionActiva.correo);
+  const [correoBD, setCorreoBD] = useState(sesionActiva.email || "Correo no disponible");
   const [mostrarExito, setMostrarExito] = useState(false); 
   const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false); 
   
@@ -36,7 +35,9 @@ export default function FormularioPublicar() {
 
   const [formData, setFormData] = useState({
     nombreSitio: '', departamento: '', municipio: '', distrito: '',   
-    ubicacion: null, categoria: '', descripcion: '',
+    ubicacion: null, categoria: '', 
+    descripcion: '', 
+    video_link: '', // 🔥 CAMBIADO: Ahora se llama exactamente como lo pide Julio
     precios: { adultos: '', ninos: '', terceraEdad: '' },
     horarios: {
       lunes: { abierto: false, inicio: '08:00', fin: '17:00' }, martes: { abierto: false, inicio: '08:00', fin: '17:00' },
@@ -59,7 +60,6 @@ export default function FormularioPublicar() {
             if (res.ok) {
                 const data = await res.json();
                 
-                // Mapeamos lo que traiga Julio y si falta algo lo ponemos en false
                 const permisosCargados = { ...estadoInicialPermisos, ...data.politicas_obj };
 
                 setFormData({
@@ -70,9 +70,10 @@ export default function FormularioPublicar() {
                     ubicacion: { lat: parseFloat(data.latitud), lng: parseFloat(data.longitud) },
                     categoria: JSON.parse(data.clasificacion)[0].charAt(0).toUpperCase() + JSON.parse(data.clasificacion)[0].slice(1).toLowerCase(),
                     descripcion: data.descripcion,
+                    video_link: data.video_link || '', // 🔥 Cargar link de la BD si existe
                     precios: JSON.parse(data.detalles).tarifas_desglosadas,
                     horarios: procesarHorariosDesdeAPI(JSON.parse(data.horarios)),
-                    permisos: permisosCargados // Magia pura
+                    permisos: permisosCargados 
                 });
                 setCoordManual({ lat: data.latitud, lng: data.longitud });
                 
@@ -140,7 +141,7 @@ export default function FormularioPublicar() {
   const manejarCambio = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
   const manejarCheck = (e) => setFormData({ ...formData, permisos: { ...formData.permisos, [e.target.name]: e.target.checked } });
   const manejarPrecio = (e) => setFormData({ ...formData, precios: { ...formData.precios, [e.target.name]: e.target.value } });
-  
+
   const manejarHorario = (dia, campo, valor) => {
     setFormData({ ...formData, horarios: { ...formData.horarios, [dia]: { ...formData.horarios[dia], [campo]: valor } } });
   };
@@ -195,8 +196,10 @@ export default function FormularioPublicar() {
     data.append('costo_entrada', parseFloat(formData.precios.adultos) || 0);
     data.append('fecha', new Date().toISOString().split('T')[0]); 
     data.append('personas', 1); 
+    
+    // 🔥 CAMBIADO: Se manda exactamente como "video_link"
+    if (formData.video_link) data.append('video_link', formData.video_link);
 
-    // Enviamos el objeto de permisos completo, Julio lo guardará tal cual en su JSON
     data.append('politicas', JSON.stringify(formData.permisos));
 
     const horariosJulio = {};
@@ -207,7 +210,7 @@ export default function FormularioPublicar() {
     });
     data.append('horarios', JSON.stringify(horariosJulio));
     data.append('detalles', JSON.stringify({ tarifas_desglosadas: formData.precios }));
-    data.append('usuario', sesionActiva.idusuario);
+    data.append('usuario', sesionActiva.idusuario || '');
 
     const loteID = generarIDLote(); 
     let indiceArchivosNuevos = 0; 
@@ -261,7 +264,7 @@ export default function FormularioPublicar() {
           <h3 className="text-3xl font-black tracking-tight uppercase italic text-center leading-none">
             {id ? 'Editar Destino' : 'Publicar Nuevo Destino'}
           </h3>
-          <p className="text-blue-100 text-[10px] mt-3 uppercase font-black tracking-[0.2em] text-center italic">Sesión Activa: {sesionActiva.rol}</p>
+          <p className="text-blue-100 text-[10px] mt-3 uppercase font-black tracking-[0.2em] text-center italic">Sesión Activa: {sesionActiva.rol || 'Desconocido'}</p>
           <button type="button" onClick={() => navigate(-1)} className="absolute top-8 right-8 bg-white/10 hover:bg-white/20 p-3 rounded-2xl transition-all font-black">✕</button>
         </div>
 
@@ -327,7 +330,6 @@ export default function FormularioPublicar() {
           <div className="space-y-12">
             <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-[0.2em] border-b border-slate-100 pb-4">03. Clasificación del Destino</h4>
             
-            {/* NUEVO BLOQUE: CLASIFICACIÓN */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {categoriasDestino.map(cat => (
                 <label key={cat} className={`flex items-center justify-center p-4 border-2 rounded-2xl cursor-pointer transition-all font-bold text-[10px] text-center uppercase tracking-widest ${formData.categoria === cat ? 'border-blue-600 bg-blue-600 text-white shadow-md' : 'border-slate-100 text-slate-500 bg-slate-50 hover:border-slate-300'}`}>
@@ -337,7 +339,6 @@ export default function FormularioPublicar() {
               ))}
             </div>
 
-            {/* NUEVO BLOQUE: REGLAS Y PERMISOS */}
             <div className="space-y-4 pt-6">
                 <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest italic ml-2">A. Reglas y Permisos</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -350,7 +351,6 @@ export default function FormularioPublicar() {
                 </div>
             </div>
 
-            {/* NUEVO BLOQUE: AMENIDADES */}
             <div className="space-y-4 pt-6">
                 <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest italic ml-2">B. Servicios y Amenidades</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -363,7 +363,6 @@ export default function FormularioPublicar() {
                 </div>
             </div>
 
-            {/* NUEVO BLOQUE: ACTIVIDADES */}
             <div className="space-y-4 pt-6">
                 <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest italic ml-2">C. Actividades Destacadas</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -403,15 +402,15 @@ export default function FormularioPublicar() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-1 text-left">
                     <label className="text-[8px] font-black uppercase text-slate-400 ml-2 italic">Adultos</label>
-                    <input type="number" name="adultos" value={formData.precios.adultos} onChange={manejarPrecio} className="w-full px-4 py-3 rounded-xl border border-slate-200 text-xs font-bold focus:border-blue-500 outline-none shadow-sm" placeholder="0.00" />
+                    <input type="number" min="0" step="0.01" onKeyDown={(e) => (e.key === '-' || e.key === 'e') && e.preventDefault()} name="adultos" value={formData.precios.adultos} onChange={manejarPrecio} className="w-full px-4 py-3 rounded-xl border border-slate-200 text-xs font-bold focus:border-blue-500 outline-none shadow-sm" placeholder="0.00" />
                   </div>
                   <div className="space-y-1 text-left">
                     <label className="text-[8px] font-black uppercase text-slate-400 ml-2 italic">Niños</label>
-                    <input type="number" name="ninos" value={formData.precios.ninos} onChange={manejarPrecio} className="w-full px-4 py-3 rounded-xl border border-slate-200 text-xs font-bold focus:border-blue-500 outline-none shadow-sm" placeholder="0.00" />
+                    <input type="number" min="0" step="0.01" onKeyDown={(e) => (e.key === '-' || e.key === 'e') && e.preventDefault()} name="ninos" value={formData.precios.ninos} onChange={manejarPrecio} className="w-full px-4 py-3 rounded-xl border border-slate-200 text-xs font-bold focus:border-blue-500 outline-none shadow-sm" placeholder="0.00" />
                   </div>
                   <div className="space-y-1 text-left">
                     <label className="text-[8px] font-black uppercase text-slate-400 ml-2 italic">Tercera Edad</label>
-                    <input type="number" name="terceraEdad" value={formData.precios.terceraEdad} onChange={manejarPrecio} className="w-full px-4 py-3 rounded-xl border border-slate-200 text-xs font-bold focus:border-blue-500 outline-none shadow-sm" placeholder="0.00" />
+                    <input type="number" min="0" step="0.01" onKeyDown={(e) => (e.key === '-' || e.key === 'e') && e.preventDefault()} name="terceraEdad" value={formData.precios.terceraEdad} onChange={manejarPrecio} className="w-full px-4 py-3 rounded-xl border border-slate-200 text-xs font-bold focus:border-blue-500 outline-none shadow-sm" placeholder="0.00" />
                   </div>
                 </div>
               </div>
@@ -422,13 +421,34 @@ export default function FormularioPublicar() {
             <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-[0.2em]">05. Descripción del lugar</h4>
             <div className="space-y-1">
               <label className="text-[9px] font-black uppercase text-slate-400 ml-2 tracking-widest block italic">Actividades y servicios</label>
-              <textarea name="descripcion" value={formData.descripcion} onChange={manejarCambio} required className="w-full px-5 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:bg-white focus:border-blue-500 outline-none h-32 text-slate-700 font-bold italic shadow-sm" placeholder="Describe el lugar..." />
+              <textarea name="descripcion" maxLength={250} value={formData.descripcion} onChange={manejarCambio} required className="w-full px-5 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:bg-white focus:border-blue-500 outline-none h-32 text-slate-700 font-bold italic shadow-sm resize-none" placeholder="Describe el lugar..." />
+              <div className="text-right text-[9px] font-black text-slate-400 mt-1 uppercase tracking-widest">
+                  {formData.descripcion.length} / 250 caracteres
+              </div>
             </div>
           </div>
 
           <div className="space-y-4">
             <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-[0.2em]">06. Multimedia del Destino (MÁX. 20)</h4>
             
+            <div className="bg-slate-50 border border-slate-200 rounded-3xl p-6 shadow-inner space-y-3">
+                <div className="flex items-center gap-3">
+                    <div className="bg-red-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-black shadow-md">▶</div>
+                    <div>
+                        <h5 className="text-slate-700 font-black uppercase text-[10px] tracking-widest italic">Enlace de video 360° en YouTube (Opcional)</h5>
+                        <p className="text-slate-400 text-[9px] font-bold mt-0.5">Si tienes un video 360 del sitio, pega tu enlace aquí para mostrarlo. Puedes dejar este campo vacío.</p>
+                    </div>
+                </div>
+                <input 
+                    type="url" 
+                    name="video_link" 
+                    value={formData.video_link} 
+                    onChange={manejarCambio} 
+                    className="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-white focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none text-slate-700 font-bold italic shadow-sm transition-all" 
+                    placeholder="Ej: https://youtu.be/hEdzv7D4CbQ" 
+                />
+            </div>
+
             <div className="bg-blue-50 border border-blue-200 rounded-3xl p-6 flex items-start gap-5 shadow-inner relative overflow-hidden group">
                 <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-100 rounded-full opacity-50 group-hover:scale-150 transition-transform duration-700"></div>
                 <div className="bg-blue-600 w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-lg shrink-0 z-10 italic">360°</div>
@@ -501,7 +521,7 @@ export default function FormularioPublicar() {
             <div className="bg-blue-50/50 p-10 rounded-[2.5rem] border border-blue-100 space-y-8 relative overflow-hidden group">
               <div className="flex flex-col gap-2 relative z-10">
                 <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-1 italic">Emisor de la propuesta</p>
-                <h4 className="text-slate-800 font-black uppercase italic text-lg leading-tight">Enviada bajo el nombre de: <span className="text-blue-600">{sesionActiva.nombre}</span></h4>
+                <h4 className="text-slate-800 font-black uppercase italic text-lg leading-tight">Enviada bajo el nombre de: <span className="text-blue-600">{sesionActiva.nombre || 'Usuario Desconocido'}</span></h4>
               </div>
               <div className="flex items-start gap-4 p-5 bg-white/50 rounded-2xl border border-blue-100/50 shadow-sm relative z-10">
                 <div className="bg-blue-600 text-white w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black italic shadow-lg">!</div>

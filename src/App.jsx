@@ -14,10 +14,9 @@ import RestablecerClave from "./components/RestablecerClave";
 import MisPropuestas from "./components/MisPropuestas"; 
 import PerfilUsuario from "./components/PerfilUsuario"; 
 import { API_URL } from './config';
-// --- NUEVOS IMPORTS ---
 import AdminDetalleSitio from "./components/AdminDetalleSitio";
 import DetallePublico from "./components/DetallePublico"; 
-import Prueba360 from "./components/Prueba360"; // <--- Importamos tu nuevo juguete
+import Prueba360 from "./components/Prueba360";
 
 function AppContent() {
   const navigate = useNavigate();
@@ -28,7 +27,7 @@ function AppContent() {
   const [queriaPublicar, setQueriaPublicar] = useState(false);
   const [cargandoSesion, setCargandoSesion] = useState(true);
 
- const API_BASE_URL = API_URL;
+  const API_BASE_URL = API_URL;
 
   const construirUrlFoto = (usuario) => {
     if (!usuario) return null;
@@ -118,11 +117,10 @@ function AppContent() {
       <div className="flex-grow"> 
         <Routes>
           <Route path="/" element={<Home />} />
-          
-          {/* RUTA DE PRUEBA 360 - HARDCODEADA */}
           <Route path="/test-360" element={<Prueba360 />} />
 
-          <Route path="/departamento/:nombreDepto" element={<VistaDepartamento onSeleccionarSitio={setSitioSeleccionado} />} />
+          <Route path="/departamento/:nombreDepto" element={<VistaDepartamento onSeleccionarSitio={setSitioSeleccionado} alIntentarPublicar={intentarPublicar} />} />
+          
           <Route path="/destino/:id" element={<DetallePublico />} />
           <Route path="/mi-destino" element={sitioSeleccionado ? <DetalleDestino sitio={sitioSeleccionado} /> : <Navigate to="/" replace />} />
           
@@ -161,8 +159,9 @@ function AppContent() {
             element={rolUsuario === 'admin' ? <AnalisisDestino /> : <Navigate to="/" replace />} 
           />
 
+          {/* 🔥 LA RUTA QUE ATRAPA EL ENLACE DEL CORREO DE JULIO */}
           <Route 
-            path="/restablecer" 
+            path="/restablecer/:idusuario" 
             element={<RestablecerClave alTerminar={() => setMostrarLogin(true)} />} 
           />
 

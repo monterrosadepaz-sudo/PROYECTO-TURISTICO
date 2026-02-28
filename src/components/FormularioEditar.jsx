@@ -22,7 +22,7 @@ export default function FormularioEditar() {
 
   const [modoEdicion, setModoEdicion] = useState(false); 
   const [estadoSitio, setEstadoSitio] = useState(''); 
-  const [previews, setPreviews] = useState([]); 
+  const [previews, setPreviews] = useState({ planas: [], tres60: [], videos: [], youtubeUrl: null }); 
   
   const [modalVisible, setModalVisible] = useState(false);
   const [tipoAccion, setTipoAccion] = useState(null); 
@@ -46,6 +46,7 @@ export default function FormularioEditar() {
   const [formData, setFormData] = useState({
     nombreSitio: '', departamento: '', municipio: '', distrito: '',   
     ubicacion: null, categoria: '', descripcion: '',
+    youtubeVideo: '', 
     precios: { adultos: '', ninos: '', terceraEdad: '' }, horarios: horarioBase,
     permisos: estadoInicialPermisos
   });
@@ -177,20 +178,11 @@ export default function FormularioEditar() {
           if(pol.parrillasCocinas || pol.PARRILLAS_COCINAS) permisosCargados.parrillas_cocinas = true;
           if(pol.armasFuego || pol.ARMAS_DE_FUEGO) permisosCargados.armas_de_fuego = true;
 
-          setFormData({
-            nombreSitio: data.nombre || '', departamento: data.departamento || '', municipio: data.municipio || '', distrito: data.distrito || '', 
-            ubicacion: { lat: parseFloat(data.latitud), lng: parseFloat(data.longitud) }, categoria: catNormalizada, descripcion: data.descripcion || '',
-            precios: { adultos: tarifas.adultos || data.costo_entrada || '0.00', ninos: tarifas.ninos || '0.00', terceraEdad: tarifas.terceraEdad || '0.00' },
-            horarios: horariosProcesados, permisos: permisosCargados
-          });
-
-          setCoordManual({ lat: data.latitud ? parseFloat(data.latitud).toFixed(6) : '', lng: data.longitud ? parseFloat(data.longitud).toFixed(6) : '' });
-          setImagenRaw(data.imagen || ''); 
-
-          // EXTRACCIÓN MAESTRA DE IMÁGENES
-          let archivosMultimedia = [];
           const jsonImagenes = data.imagenes || data.lote_imagenes;
           const loteRaw = safeParse(jsonImagenes);
+
+          let urlYoutubeExtraida = data.video_link || ''; 
+          let orgPreview = { planas: [], tres60: [], videos: [], youtubeUrl: null };
 
           const obtenerRutaReal = (nombreImg) => {
               if (!nombreImg) return '';
@@ -200,24 +192,46 @@ export default function FormularioEditar() {
           };
 
           if (loteRaw && typeof loteRaw === 'object' && !Array.isArray(loteRaw)) {
-              // Extraer Planas
               if (loteRaw.plana && Array.isArray(loteRaw.plana)) {
-                  loteRaw.plana.forEach(img => archivosMultimedia.push({ url: obtenerRutaReal(img), nombreOriginal: img }));
+                  loteRaw.plana.forEach(img => orgPreview.planas.push({ url: obtenerRutaReal(img), nombreOriginal: img }));
               }
-              // Extraer 360
               if (loteRaw['360'] && Array.isArray(loteRaw['360'])) {
-                  loteRaw['360'].forEach(img => archivosMultimedia.push({ url: obtenerRutaReal(img), nombreOriginal: img }));
+                  loteRaw['360'].forEach(img => {
+                      if(img !== "YouTube Video") orgPreview.tres60.push({ url: obtenerRutaReal(img), nombreOriginal: img });
+                  });
               }
-              // Extraer Videos
               if (loteRaw.video && Array.isArray(loteRaw.video)) {
-                  loteRaw.video.forEach(vid => archivosMultimedia.push({ url: obtenerRutaReal(vid), nombreOriginal: vid }));
+                  loteRaw.video.forEach(vid => orgPreview.videos.push({ url: obtenerRutaReal(vid), nombreOriginal: vid }));
+              }
+              if (loteRaw.youtube && loteRaw.youtube.length > 0) {
+                  const ytUrl = Array.isArray(loteRaw.youtube) ? loteRaw.youtube[0] : loteRaw.youtube;
+                  if(ytUrl && ytUrl !== "YouTube Video") {
+                      urlYoutubeExtraida = ytUrl;
+                  }
               }
           } else if (Array.isArray(loteRaw)) {
-              // Formato viejo (array simple)
-              loteRaw.forEach(img => archivosMultimedia.push({ url: obtenerRutaReal(img), nombreOriginal: img }));
+              loteRaw.forEach(img => {
+                  if(img !== "YouTube Video") {
+                      if(img.includes('.mp4')) orgPreview.videos.push({ url: obtenerRutaReal(img), nombreOriginal: img });
+                      else if(img.includes('-360')) orgPreview.tres60.push({ url: obtenerRutaReal(img), nombreOriginal: img });
+                      else orgPreview.planas.push({ url: obtenerRutaReal(img), nombreOriginal: img });
+                  }
+              });
           }
 
-          setPreviews(archivosMultimedia);
+          orgPreview.youtubeUrl = urlYoutubeExtraida;
+          
+          setFormData({
+            nombreSitio: data.nombre || '', departamento: data.departamento || '', municipio: data.municipio || '', distrito: data.distrito || '', 
+            ubicacion: { lat: parseFloat(data.latitud), lng: parseFloat(data.longitud) }, categoria: catNormalizada, descripcion: data.descripcion || '',
+            youtubeVideo: urlYoutubeExtraida, 
+            precios: { adultos: tarifas.adultos || data.costo_entrada || '0.00', ninos: tarifas.ninos || '0.00', terceraEdad: tarifas.terceraEdad || '0.00' },
+            horarios: horariosProcesados, permisos: permisosCargados
+          });
+
+          setCoordManual({ lat: data.latitud ? parseFloat(data.latitud).toFixed(6) : '', lng: data.longitud ? parseFloat(data.longitud).toFixed(6) : '' });
+          setImagenRaw(data.imagen || ''); 
+          setPreviews(orgPreview);
         }
       } catch (error) { console.error("Error:", error); } finally { setCargando(false); }
     };
@@ -243,6 +257,7 @@ export default function FormularioEditar() {
              idusuario: sesionActiva.idusuario, idpublicacion: id, nombre: formData.nombreSitio, departamento: formData.departamento, municipio: formData.municipio, distrito: formData.distrito, latitud: formData.ubicacion.lat, longitud: formData.ubicacion.lng, 
              clasificacion: JSON.stringify([formData.categoria.toUpperCase(), "TURISMO"]), 
              politicas: JSON.stringify(formData.permisos),
+             video_link: formData.youtubeVideo,
              horarios: JSON.stringify(horariosEnvio), costo_entrada: formData.precios.adultos || 0, descripcion: formData.descripcion, detalles: JSON.stringify({ tarifas_desglosadas: formData.precios }), 
              imagen: imagenRaw, estado: "inactivo", aprobado_por: adminId, idadmin: adminId, tarifas_desglosadas: JSON.stringify(formData.precios), fecha: extraData.fecha, personas: extraData.personas
          };
@@ -284,17 +299,48 @@ export default function FormularioEditar() {
       } catch (error) { alert("Error de conexión."); } finally { setProcesandoSolicitud(false); }
   };
 
+  const RenderMiniaturas = ({ items, icon, tag }) => {
+      if(items.length === 0) return null;
+      return (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {items.map((item, idx) => (
+                  <div key={idx} className="relative aspect-square rounded-[2rem] overflow-hidden shadow-md border-4 border-white bg-slate-900 group">
+                      {item.url.includes('.mp4') ? (
+                          <div className="w-full h-full bg-slate-800 flex items-center justify-center">
+                              <span className="text-white text-3xl opacity-50">▶</span>
+                          </div>
+                      ) : (
+                          <img src={item.url} className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 ${tag === '360°' ? 'saturate-110' : ''}`} alt="Vista previa" 
+                             onError={(e) => { e.target.onerror = null; e.target.src = '/default.jpg'; }}
+                          />
+                      )}
+                      <div className={`absolute bottom-3 left-3 text-white text-[8px] font-black px-2 py-1 rounded-full shadow-md uppercase tracking-widest ${tag === '360°' ? 'bg-blue-600' : 'bg-slate-800/80'}`}>
+                          {icon} {tag}
+                      </div>
+                  </div>
+              ))}
+          </div>
+      );
+  };
+
   if (cargando) return <div className="min-h-screen flex items-center justify-center italic font-black text-blue-800 uppercase tracking-widest animate-pulse">Cargando...</div>;
 
   return (
     <div className="min-h-screen py-12 px-4 flex justify-center items-start bg-slate-100/50 italic text-left">
       <ModalSolicitud visible={modalVisible} tipo={tipoAccion} alCerrar={() => setModalVisible(false)} alConfirmar={confirmarSolicitud} procesando={procesandoSolicitud} />
       
+      {/* 🔥 INYECCIÓN DE DATOS AL GESTOR DE IMÁGENES 🔥 */}
       {modalGestorImagenesAbierto && modoEdicion && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/95 backdrop-blur-md animate-in fade-in">
             <div className="w-full max-w-6xl max-h-[90vh] overflow-y-auto bg-white rounded-[3rem] shadow-2xl relative">
                 <button onClick={() => setModalGestorImagenesAbierto(false)} className="absolute top-6 right-6 z-50 bg-slate-100 hover:bg-red-500 hover:text-white w-12 h-12 rounded-full flex items-center justify-center text-xl font-black transition-all shadow-md">✕</button>
-                <GestorLoteImagenes idpublicacion={id} idusuario={sesionActiva.idusuario} imagenesCargadas={previews} alTerminar={() => setModalGestorImagenesAbierto(false)}/>
+                <GestorLoteImagenes 
+                    idpublicacion={id} 
+                    idusuario={sesionActiva.idusuario} 
+                    imagenesCargadas={[...previews.planas, ...previews.tres60, ...previews.videos]} 
+                    youtubeActual={previews.youtubeUrl}  // <- El enlace fluye hacia el Gestor
+                    alTerminar={() => setModalGestorImagenesAbierto(false)}
+                />
             </div>
         </div>
       )}
@@ -395,7 +441,6 @@ export default function FormularioEditar() {
               ))}
             </div>
 
-            {/* SECCIÓN REGLAS */}
             <div className="space-y-4 pt-6">
                 <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest italic ml-2">A. Reglas y Permisos</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -408,7 +453,6 @@ export default function FormularioEditar() {
                 </div>
             </div>
 
-            {/* SECCIÓN AMENIDADES */}
             <div className="space-y-4 pt-6">
                 <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest italic ml-2">B. Servicios y Amenidades</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -421,7 +465,6 @@ export default function FormularioEditar() {
                 </div>
             </div>
 
-            {/* SECCIÓN ACTIVIDADES */}
             <div className="space-y-4 pt-6">
                 <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest italic ml-2">C. Actividades Destacadas</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -454,11 +497,26 @@ export default function FormularioEditar() {
                   </div>
                 ))}
             </div>
+            
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
                 {['adultos', 'ninos', 'terceraEdad'].map(p => (
-                  <div key={p} className="space-y-1">
+                  <div key={p} className="space-y-1 text-left">
                     <label className="text-[8px] font-black uppercase text-slate-400 ml-2 italic">{etiquetasPrecios[p]}</label>
-                    <input name={p} readOnly={!modoEdicion} value={formData.precios[p]} onChange={handlePrecioChange} className={`w-full px-4 py-3 rounded-xl border font-bold italic text-xs shadow-inner focus:outline-none ${modoEdicion ? 'bg-white border-blue-300 text-slate-700' : 'bg-slate-100 border-slate-100 text-slate-400'}`} />
+                    <div className={`flex items-center rounded-xl border shadow-inner overflow-hidden focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all ${modoEdicion ? 'bg-white border-blue-200' : 'bg-slate-100 border-slate-100'}`}>
+                        <span className="px-3 text-slate-400 font-black text-sm italic">$</span>
+                        <input 
+                            name={p} 
+                            type="number" 
+                            min="0" 
+                            step="0.01" 
+                            onKeyDown={(e) => (e.key === '-' || e.key === 'e') && e.preventDefault()} 
+                            readOnly={!modoEdicion} 
+                            value={formData.precios[p]} 
+                            onChange={handlePrecioChange} 
+                            className="w-full py-3 pr-4 font-bold italic text-xs outline-none bg-transparent text-slate-700" 
+                            placeholder="0.00" 
+                        />
+                    </div>
                   </div>
                 ))}
             </div>
@@ -466,14 +524,14 @@ export default function FormularioEditar() {
           
           <div className="space-y-4">
             <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-[0.2em]">05. Descripción</h4>
-            <textarea name="descripcion" readOnly={!modoEdicion} value={formData.descripcion} onChange={handleChange} className={`w-full px-5 py-4 rounded-2xl border bg-slate-50 h-32 font-bold italic shadow-sm focus:outline-none resize-none ${modoEdicion ? 'border-blue-300 text-slate-800' : 'border-slate-100 text-slate-500'}`} />
+            <textarea name="descripcion" readOnly={!modoEdicion} value={formData.descripcion} onChange={handleChange} className={`w-full px-5 py-4 rounded-2xl border bg-slate-50 h-32 font-bold italic shadow-sm focus:outline-none resize-none ${modoEdicion ? 'border-blue-300 text-slate-800 focus:bg-white' : 'border-slate-100 text-slate-500'}`} />
           </div>
 
           <div className="space-y-4 bg-slate-50 p-8 rounded-[3rem] border border-slate-200">
             <div className="flex flex-col md:flex-row justify-between md:items-end gap-4 mb-6 border-b border-slate-200 pb-6">
                 <div>
                     <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-[0.2em]">06. Galería de Imágenes</h4>
-                    <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-1">Archivos actuales: {previews.length}</p>
+                    <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-1">Archivos actuales</p>
                 </div>
                 
                 {modoEdicion && (
@@ -486,55 +544,56 @@ export default function FormularioEditar() {
                 )}
             </div>
 
-            {previews.length > 0 ? (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {previews.map((item, index) => {
-                    const esVideo = item.url.match(/\.(mp4|mov|avi|wmv|webm)$/i);
-                    const es360 = item.url.includes('-360');
-
-                    return (
-                        <div key={index} className="relative aspect-square rounded-[2rem] overflow-hidden shadow-md border-4 border-white bg-slate-900 group">
-                            {esVideo ? (
-                                <>
-                                    <video src={`${item.url}#t=0.001`} className="w-full h-full object-cover opacity-70" preload="metadata" muted />
-                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                        <div className="bg-white/30 backdrop-blur-sm w-10 h-10 rounded-full flex items-center justify-center text-white pl-1 shadow-lg border border-white/50 text-sm">▶</div>
-                                    </div>
-                                </>
-                            ) : (
-                                <img 
-                                    src={item.url} 
-                                    className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 ${es360 ? 'saturate-110' : ''}`} 
-                                    alt="Vista previa" 
-                                    onError={(e) => { 
-                                        if(e.target.src.includes('publicaciones')) {
-                                            e.target.src = item.url.replace('publicaciones', 'preformularios');
-                                        } else {
-                                            e.target.style.display = 'none'; 
-                                        }
-                                    }} 
-                                />
-                            )}
-                            {es360 && (
-                                <div className="absolute bottom-3 left-3 bg-blue-600 text-white text-[8px] font-black px-2 py-1 rounded-full shadow-md uppercase tracking-widest">
-                                    360°
-                                </div>
-                            )}
-                            {!es360 && !esVideo && (
-                                <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md text-white text-[7px] font-black px-2 py-1 rounded-lg uppercase tracking-widest">
-                                    IMG 0{index + 1}
-                                </div>
-                            )}
-                        </div>
-                    );
-                  })}
-                </div>
-            ) : (
-                <div className="p-12 text-center bg-white border-2 border-dashed border-slate-200 rounded-[2.5rem] text-slate-400">
-                    <span className="text-3xl block mb-2 opacity-50">📂</span>
-                    <p className="font-black text-[10px] uppercase tracking-widest">Sin imágenes registradas</p>
+            {/* 🔥 SECCIÓN YOUTUBE LECTURA (El input de edición desapareció para evitar conflictos) */}
+            {formData.youtubeVideo && (
+               <div className="mb-6 p-4 bg-white rounded-2xl border border-slate-100 flex items-center gap-3">
+                   <div className="w-10 h-10 bg-red-100 text-red-500 rounded-full flex items-center justify-center text-lg shrink-0 shadow-sm">▶</div>
+                   <div className="overflow-hidden">
+                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Enlace de Video Adjunto</p>
+                       <a href={formData.youtubeVideo} target="_blank" rel="noreferrer" className="text-xs font-bold text-blue-600 hover:underline italic truncate block w-full">
+                           {formData.youtubeVideo}
+                       </a>
+                   </div>
+               </div>
+            )}
+            
+            {modoEdicion && (
+                <div className="mb-6">
+                    <p className="text-[9px] text-slate-500 font-bold uppercase p-4 border-2 border-dashed border-slate-200 bg-white rounded-xl text-center">
+                        Para agregar o modificar un video de YouTube, haz clic en el botón azul "Actualizar Imágenes".
+                    </p>
                 </div>
             )}
+
+            {/* GALERÍA SEPARADA POR TIPOS */}
+            <div className="space-y-6">
+                {previews.tres60.length > 0 && (
+                    <div>
+                        <h5 className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-3 border-b border-slate-200 pb-1 inline-block">Esferas 360°</h5>
+                        <RenderMiniaturas items={previews.tres60} icon="🌐" tag="360°" />
+                    </div>
+                )}
+                {previews.videos.length > 0 && (
+                    <div>
+                        <h5 className="text-[9px] font-black text-purple-600 uppercase tracking-widest mb-3 border-b border-slate-200 pb-1 inline-block">Videos MP4</h5>
+                        <RenderMiniaturas items={previews.videos} icon="🎬" tag="VIDEO" />
+                    </div>
+                )}
+                {previews.planas.length > 0 && (
+                    <div>
+                        <h5 className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3 border-b border-slate-200 pb-1 inline-block">Fotos Normales</h5>
+                        <RenderMiniaturas items={previews.planas} icon="📷" tag="FOTO" />
+                    </div>
+                )}
+                
+                {previews.tres60.length === 0 && previews.videos.length === 0 && previews.planas.length === 0 && !formData.youtubeVideo && (
+                    <div className="p-12 text-center bg-white border-2 border-dashed border-slate-200 rounded-[2.5rem] text-slate-400">
+                        <span className="text-3xl block mb-2 opacity-50">📂</span>
+                        <p className="font-black text-[10px] uppercase tracking-widest">Sin archivos multimedia</p>
+                    </div>
+                )}
+            </div>
+
           </div>
 
         </div>

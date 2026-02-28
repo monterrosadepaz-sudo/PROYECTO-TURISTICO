@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import TablaPropuestas from './TablaPropuestas';
 import { API_URL } from '../config';
+
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const location = useLocation(); 
@@ -13,12 +14,14 @@ export default function AdminDashboard() {
   // --- ESTADOS DEL FLUJO DEL MODAL DE EDICIÓN ---
   const [mostrarModal, setMostrarModal] = useState(false);
   const [faseModal, setFaseModal] = useState('advertencia'); // advertencia, menu, editar, confirmacion, exito
-  const [campoAEditar, setCampoAEditar] = useState(null); // nombre, username, email, password
+  const [campoAEditar, setCampoAEditar] = useState(null); // nombre, username, email, telefono, password
   const [verClave, setVerClave] = useState(false);
   
   const [usuarioActual, setUsuarioActual] = useState(null);
+  
+  // 🔥 NUEVO: Se agrega "telefono" al estado de edición
   const [datosEdicion, setDatosEdicion] = useState({
-    nombre: '', username: '', email: '', password: '', confirmarPassword: ''
+    nombre: '', username: '', email: '', telefono: '', password: '', confirmarPassword: ''
   });
 
   const [propuestas, setPropuestas] = useState([]);       
@@ -29,7 +32,7 @@ export default function AdminDashboard() {
   const [solicitudesPendientes, setSolicitudesPendientes] = useState([]);
   const [solicitudesVistas, setSolicitudesVistas] = useState([]);
 
-  const sesion = JSON.parse(localStorage.getItem('usuarioLogueado'));
+  const sesion = JSON.parse(localStorage.getItem('usuarioLogueado')) || {};
 
   useEffect(() => {
       if (location.state?.solicitudAtendidaId) {
@@ -113,39 +116,46 @@ export default function AdminDashboard() {
   };
 
   // --- INICIO DEL FLUJO DE EDICIÓN ---
- // --- INICIO DEL FLUJO DE EDICIÓN ---
-  const manejarAccion = async (id, accion, datosExtra) => {
-    if (accion === 'editar_usuario') {
-      setUsuarioActual(datosExtra);
-      setDatosEdicion({
-        nombre: datosExtra.nombre,
-        username: datosExtra.username,
-        email: datosExtra.email,
-        password: '',
-        confirmarPassword: ''
-      });
-      setFaseModal('advertencia'); // Iniciamos con la advertencia
-      setMostrarModal(true);
-      return;
-    }
-    if (accion === 'analizar_propuesta') {
-      // ✅ AGREGAMOS EL STATE (LA MOCHILA CON LOS DATOS)
-      navigate(`/dashboard/analizar/${id}`, { state: { datosSolicitud: datosExtra } }); 
-      return;
-    }
-    if (accion === 'ver_detalle_sitio') {
-      // ✅ AGREGAMOS EL STATE AQUÍ TAMBIÉN
-      navigate(`/admin/sitio/${id}`, { state: { datosSolicitud: datosExtra } }); 
-      return;
-    }
-  };
+  const manejarAccion = async (id, accion, datosExtra) => {
+    if (accion === 'editar_usuario') {
+      setUsuarioActual(datosExtra);
+      
+      // 🔥 NUEVO: Limpiamos el +503 al abrir el modal para que encaje perfecto en el input
+      const telefonoLimpio = datosExtra.numero ? datosExtra.numero.replace('+503', '').trim() : '';
+
+      setDatosEdicion({
+        nombre: datosExtra.nombre,
+        username: datosExtra.username,
+        email: datosExtra.email,
+        telefono: telefonoLimpio, // Inyectamos el teléfono
+        password: '',
+        confirmarPassword: ''
+      });
+      setFaseModal('advertencia');
+      setMostrarModal(true);
+      return;
+    }
+    if (accion === 'analizar_propuesta') {
+      navigate(`/dashboard/analizar/${id}`, { state: { datosSolicitud: datosExtra } }); 
+      return;
+    }
+    if (accion === 'ver_detalle_sitio') {
+      navigate(`/admin/sitio/${id}`, { state: { datosSolicitud: datosExtra } }); 
+      return;
+    }
+  };
 
   const manejarCambioInput = (e) => {
     setDatosEdicion({ ...datosEdicion, [e.target.name]: e.target.value });
   };
 
+  // 🔥 NUEVO: Función exclusiva para validar el teléfono (igual que en Registro y Perfil)
+  const manejarTelefono = (e) => {
+    const soloNumeros = e.target.value.replace(/\D/g, '').slice(0, 8);
+    setDatosEdicion({ ...datosEdicion, telefono: soloNumeros });
+  };
+
   const irAPreGuardado = () => {
-    // Validación de contraseñas si estamos editando eso
     if (campoAEditar === 'password') {
       if (datosEdicion.password !== datosEdicion.confirmarPassword) {
         return alert("Las contraseñas no coinciden. Por favor, verifícalas.");
@@ -154,6 +164,12 @@ export default function AdminDashboard() {
         return alert("La contraseña debe tener al menos 4 caracteres.");
       }
     }
+    
+    // 🔥 NUEVO: Validación de 8 dígitos antes de guardar
+    if (campoAEditar === 'telefono' && datosEdicion.telefono.length !== 8 && datosEdicion.telefono.length > 0) {
+      return alert("El número de teléfono debe tener exactamente 8 dígitos.");
+    }
+
     setFaseModal('confirmacion');
   };
 
@@ -167,8 +183,13 @@ export default function AdminDashboard() {
         nombre: datosEdicion.nombre,
         username: datosEdicion.username,
         email: datosEdicion.email,
-        rol: usuarioActual.rol // Conservamos su rol original sin dejarlo editar
+        rol: usuarioActual.rol 
       };
+
+      // 🔥 NUEVO: Agregamos el número al payload con el formato de Julio
+      if (datosEdicion.telefono) {
+        payload.numero = `+503${datosEdicion.telefono}`;
+      }
 
       if (campoAEditar === 'password' && datosEdicion.password) {
         payload.password = datosEdicion.password;
@@ -194,7 +215,7 @@ export default function AdminDashboard() {
         }, 2500);
       } else {
         alert("Error: " + (data.message || data.error || "Datos inválidos"));
-        setFaseModal('editar'); // Devolver al formulario si falla
+        setFaseModal('editar');
       }
     } catch (error) {
       alert("Error de conexión al guardar.");
@@ -403,7 +424,7 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* FASE 2: MENÚ DE EDICIÓN (ESTILO COLABORADOR) */}
+          {/* FASE 2: MENÚ DE EDICIÓN */}
           {faseModal === 'menu' && (
             <div className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden italic animate-in fade-in slide-in-from-bottom-4">
               <div className="bg-blue-800 p-8 text-white text-center relative">
@@ -412,9 +433,10 @@ export default function AdminDashboard() {
                 <p className="text-[9px] text-blue-200 mt-2 tracking-widest uppercase">Selecciona qué deseas modificar</p>
               </div>
               <div className="p-8 space-y-3">
-                {['nombre', 'username', 'email', 'password'].map((campo) => (
+                {/* 🔥 NUEVO: Se agregó 'telefono' a las opciones */}
+                {['nombre', 'username', 'email', 'telefono', 'password'].map((campo) => (
                   <button key={campo} onClick={() => { setCampoAEditar(campo); setFaseModal('editar'); setVerClave(false); }} className="w-full py-5 px-8 bg-slate-50 hover:bg-blue-50 text-slate-700 font-black text-[11px] uppercase tracking-widest rounded-2xl border border-slate-100 text-left flex justify-between items-center group transition-all">
-                    {campo === 'password' ? 'Contraseña' : campo === 'email' ? 'Correo' : campo}
+                    {campo === 'password' ? 'Contraseña' : campo === 'email' ? 'Correo' : campo === 'telefono' ? 'Teléfono' : campo}
                     <span className="text-blue-300 group-hover:text-blue-600 group-hover:translate-x-1 transition-transform">→</span>
                   </button>
                 ))}
@@ -430,7 +452,9 @@ export default function AdminDashboard() {
             <div className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden italic animate-in zoom-in-95">
               <div className="bg-blue-800 p-8 text-white flex items-center justify-between">
                 <button onClick={() => setFaseModal('menu')} className="text-[9px] font-black uppercase tracking-widest hover:text-blue-200 transition-colors">← Volver</button>
-                <h2 className="text-lg font-black uppercase tracking-tighter italic text-right">Editando {campoAEditar === 'password' ? 'Contraseña' : campoAEditar}</h2>
+                <h2 className="text-lg font-black uppercase tracking-tighter italic text-right">
+                  Editando {campoAEditar === 'password' ? 'Contraseña' : campoAEditar === 'telefono' ? 'Teléfono' : campoAEditar}
+                </h2>
               </div>
               <div className="p-8 space-y-6">
                 
@@ -452,6 +476,26 @@ export default function AdminDashboard() {
                   <div className="space-y-2">
                     <label className="text-[9px] font-black uppercase text-slate-400 ml-2 tracking-widest">Nuevo Correo Electrónico</label>
                     <input type="email" name="email" value={datosEdicion.email} onChange={manejarCambioInput} className="w-full px-6 py-4 rounded-2xl bg-slate-50 border-none text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500/20" placeholder="correo@ejemplo.com" />
+                  </div>
+                )}
+
+                {/* 🔥 NUEVO: Campo de Teléfono en el Modal del Admin */}
+                {campoAEditar === 'telefono' && (
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black uppercase text-slate-400 ml-2 tracking-widest">Nuevo Teléfono</label>
+                    <div className="flex rounded-2xl bg-slate-50 overflow-hidden focus-within:ring-2 focus-within:ring-blue-500/20 transition-all">
+                      <span className="inline-flex items-center pl-6 pr-3 text-slate-500 font-black text-sm italic">
+                        +503
+                      </span>
+                      <input 
+                        type="tel" 
+                        name="telefono" 
+                        value={datosEdicion.telefono} 
+                        onChange={manejarTelefono} 
+                        className="w-full py-4 pr-6 bg-transparent border-none text-sm font-bold outline-none" 
+                        placeholder="71234567" 
+                      />
+                    </div>
                   </div>
                 )}
 

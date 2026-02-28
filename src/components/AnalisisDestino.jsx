@@ -5,39 +5,93 @@ import 'leaflet/dist/leaflet.css';
 import { API_URL } from '../config';
 import { reglasPermisos, serviciosAmenidades, actividadesDestacadas } from '../data/OpcionesDestino';
 
-// --- COMPONENTE DE GALERÍA INTELIGENTE ---
-const GaleriaEvidencia = ({ imagenes, imagenPrincipal }) => {
+// --- COMPONENTE DE GALERÍA INTELIGENTE PARA EL ADMIN (CON MINIATURA DE YOUTUBE) ---
+const GaleriaEvidencia = ({ imagenes, imagenPrincipal, videoLink }) => {
   const [fotoSeleccionada, setFotoSeleccionada] = useState(null);
   let listaMultimedia = [];
   
+  // 🔥 1. Extracción robusta del link de YouTube
+  let urlYoutubeReal = videoLink && videoLink !== "YouTube Video" ? videoLink : null;
+
+  const extraerIdYoutube = (url) => {
+    if (!url) return null;
+    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/gi;
+    const match = regex.exec(url);
+    return match ? match[1] : null;
+  };
+
   if (imagenes && typeof imagenes === 'object' && !Array.isArray(imagenes)) {
       if (imagenes.plana && Array.isArray(imagenes.plana)) {
           imagenes.plana.forEach(img => listaMultimedia.push({ url: img, tipo: 'plana' }));
       }
       if (imagenes['360'] && Array.isArray(imagenes['360'])) {
-          imagenes['360'].forEach(img => listaMultimedia.push({ url: img, tipo: '360' }));
+          imagenes['360'].forEach(img => {
+              if (img !== "YouTube Video") listaMultimedia.push({ url: img, tipo: '360' });
+          });
       }
       if (imagenes.video && Array.isArray(imagenes.video)) {
           imagenes.video.forEach(vid => listaMultimedia.push({ url: vid, tipo: 'video' }));
       }
+      // Si no venía en videoLink, lo buscamos dentro del JSON
+      if (!urlYoutubeReal && imagenes.youtube) {
+          const yt = Array.isArray(imagenes.youtube) ? imagenes.youtube[0] : imagenes.youtube;
+          if (yt && yt !== "YouTube Video") urlYoutubeReal = yt;
+      }
   } else if (imagenes && Array.isArray(imagenes) && imagenes.length > 0) {
       imagenes.forEach(img => {
           const urlStr = img.url_imagen || img;
-          const tipo = urlStr.includes('.mp4') ? 'video' : (urlStr.includes('-360') ? '360' : 'plana');
-          listaMultimedia.push({ url: urlStr, tipo: tipo });
+          if (urlStr !== "YouTube Video") {
+              const tipo = urlStr.includes('.mp4') ? 'video' : (urlStr.includes('-360') ? '360' : 'plana');
+              listaMultimedia.push({ url: urlStr, tipo: tipo });
+          }
       });
-  } else if (imagenPrincipal) {
+  } else if (imagenPrincipal && imagenPrincipal !== "YouTube Video") {
       listaMultimedia.push({ url: imagenPrincipal, tipo: 'plana' });
   }
 
-  // 🚀 LA MAGIA ESTÁ AQUÍ: El enrutador inteligente
+  const videoYoutubeId = extraerIdYoutube(urlYoutubeReal);
+
   const obtenerRutaSegura = (nombre) => {
+      if (!nombre) return '';
       if (nombre.startsWith('http')) return nombre;
       if (nombre.includes('publicacion')) return `${API_URL}/storage/publicaciones/${nombre}`;
       return `${API_URL}/storage/preformularios/${nombre}`;
   };
 
-  if (listaMultimedia.length === 0) return <div className="p-10 bg-slate-100 rounded-[3rem] text-center text-slate-400 font-bold uppercase italic">Sin evidencia visual disponible.</div>;
+  if (listaMultimedia.length === 0 && !urlYoutubeReal) {
+      return <div className="p-10 bg-slate-100 rounded-[3rem] text-center text-slate-400 font-bold uppercase italic">Sin evidencia visual disponible.</div>;
+  }
+
+  const fotosPlanas = listaMultimedia.filter(item => item.tipo === 'plana');
+  const fotos360 = listaMultimedia.filter(item => item.tipo === '360');
+  const videosMp4 = listaMultimedia.filter(item => item.tipo === 'video');
+
+  const renderCuadricula = (items) => (
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
+      {items.map((item, index) => {
+        const rutaCompleta = obtenerRutaSegura(item.url); 
+        return (
+          <div key={index} onClick={() => setFotoSeleccionada({ url: rutaCompleta, tipo: item.tipo })} className="group relative aspect-square rounded-[2rem] overflow-hidden border-4 border-white shadow-xl bg-slate-900 cursor-zoom-in">
+            {item.tipo === 'video' ? (
+                <>
+                    <video src={`${rutaCompleta}#t=0.001`} className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity duration-500" preload="metadata" muted />
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="bg-white/30 backdrop-blur-sm w-12 h-12 rounded-full flex items-center justify-center text-white pl-1 shadow-lg border border-white/50 text-xl">▶</div>
+                    </div>
+                </>
+            ) : (
+                <img src={rutaCompleta} className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 ${item.tipo === '360' ? 'saturate-110' : ''}`} alt={`Evidencia ${index + 1}`} />
+            )}
+            {item.tipo === '360' ? (
+                <div className="absolute bottom-4 left-4 bg-blue-600 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg border border-blue-400 uppercase tracking-widest">360°</div>
+            ) : (
+                <div className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-md text-white text-[8px] font-black px-3 py-1 rounded-lg uppercase tracking-widest">{item.tipo === 'video' ? 'VIDEO' : `IMG 0${index + 1}`}</div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
 
   return (
     <>
@@ -54,46 +108,75 @@ const GaleriaEvidencia = ({ imagenes, imagenPrincipal }) => {
         </div>
       )}
 
-      <div className="space-y-4">
-        <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-widest italic px-4 mb-4">Evidencia Multimedia ({listaMultimedia.length})</h4>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
-          {listaMultimedia.map((item, index) => {
-            const rutaCompleta = obtenerRutaSegura(item.url); // Usamos el enrutador
-            
-            return (
-              <div 
-                key={index} 
-                onClick={() => setFotoSeleccionada({ url: rutaCompleta, tipo: item.tipo })} 
-                className="group relative aspect-square rounded-[2rem] overflow-hidden border-4 border-white shadow-xl bg-slate-900 cursor-zoom-in"
-              >
-                {item.tipo === 'video' ? (
-                    <>
-                        <video src={`${rutaCompleta}#t=0.001`} className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity duration-500" preload="metadata" muted />
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <div className="bg-white/30 backdrop-blur-sm w-12 h-12 rounded-full flex items-center justify-center text-white pl-1 shadow-lg border border-white/50 text-xl">▶</div>
-                        </div>
-                    </>
-                ) : (
-                    <img 
-                      src={rutaCompleta} 
-                      className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 ${item.tipo === '360' ? 'saturate-110' : ''}`} 
-                      alt={`Evidencia ${index + 1}`} 
-                    />
-                )}
-                
-                {item.tipo === '360' ? (
-                    <div className="absolute bottom-4 left-4 bg-blue-600 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg border border-blue-400 uppercase tracking-widest">
-                        360°
+      <div className="space-y-10">
+        
+        {/* 🔥 SECCIÓN YOUTUBE (SOLO MINIATURA Y LINK) */}
+        {urlYoutubeReal && (
+            <div className="space-y-4">
+                <h5 className="text-red-500 text-[11px] font-black uppercase tracking-widest italic px-4 flex items-center gap-2 border-b border-slate-100 pb-2">
+                  <span className="bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px]">▶</span>
+                  Video Recorrido (YouTube)
+                </h5>
+                <div className="p-4 bg-white rounded-3xl border border-slate-100 shadow-sm flex flex-col md:flex-row items-center gap-6 group hover:shadow-md transition-shadow">
+                    <div className="w-full md:w-64 aspect-video bg-slate-900 rounded-[2rem] overflow-hidden relative shadow-lg shrink-0">
+                        {videoYoutubeId ? (
+                            <>
+                                {/* Truco para obtener la miniatura de YouTube usando el ID */}
+                                <img 
+                                  src={`https://img.youtube.com/vi/${videoYoutubeId}/maxresdefault.jpg`} 
+                                  onError={(e) => e.target.src = `https://img.youtube.com/vi/${videoYoutubeId}/hqdefault.jpg`} 
+                                  className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-500" 
+                                  alt="Miniatura YouTube" 
+                                />
+                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                    <div className="bg-red-600 text-white w-12 h-12 rounded-full flex items-center justify-center text-xl shadow-xl border-2 border-white/50">▶</div>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs font-bold uppercase tracking-widest">URL Inválida</div>
+                        )}
                     </div>
-                ) : (
-                    <div className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-md text-white text-[8px] font-black px-3 py-1 rounded-lg uppercase tracking-widest">
-                        {item.tipo === 'video' ? 'VIDEO' : `IMG 0${index + 1}`}
+                    <div className="flex-1 overflow-hidden text-center md:text-left w-full">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Enlace de Video Adjunto:</p>
+                        <a href={urlYoutubeReal} target="_blank" rel="noreferrer" className="text-sm font-bold text-blue-600 hover:text-blue-800 hover:underline italic truncate block w-full bg-blue-50/50 p-3 rounded-xl border border-blue-100">
+                            {urlYoutubeReal}
+                        </a>
+                        <p className="text-[8px] text-slate-400 mt-3 uppercase tracking-widest font-bold">Haz clic en el enlace para abrirlo en YouTube</p>
                     </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                </div>
+            </div>
+        )}
+
+        {/* SECCIÓN 360 */}
+        {fotos360.length > 0 && (
+            <div className="space-y-4">
+                <h5 className="text-blue-600 text-[11px] font-black uppercase tracking-widest italic px-4 flex items-center gap-2 border-b border-slate-100 pb-2">
+                  <span className="text-lg">🌐</span> Fotografías 360° Inmersivas
+                </h5>
+                {renderCuadricula(fotos360)}
+            </div>
+        )}
+
+        {/* SECCIÓN VIDEOS */}
+        {videosMp4.length > 0 && (
+            <div className="space-y-4">
+                <h5 className="text-purple-600 text-[11px] font-black uppercase tracking-widest italic px-4 flex items-center gap-2 border-b border-slate-100 pb-2">
+                  <span className="text-lg">🎬</span> Videos Cortos (MP4)
+                </h5>
+                {renderCuadricula(videosMp4)}
+            </div>
+        )}
+
+        {/* SECCIÓN FOTOS ESTÁNDAR */}
+        {fotosPlanas.length > 0 && (
+            <div className="space-y-4">
+                <h5 className="text-slate-600 text-[11px] font-black uppercase tracking-widest italic px-4 flex items-center gap-2 border-b border-slate-100 pb-2">
+                  <span className="text-lg">📷</span> Fotografías Estándar
+                </h5>
+                {renderCuadricula(fotosPlanas)}
+            </div>
+        )}
+
       </div>
     </>
   );
@@ -106,7 +189,6 @@ export default function AnalisisDestino() {
   const [sitio, setSitio] = useState(null);
   const [cargando, setCargando] = useState(true);
 
-  // Estados Modal
   const [modalOpen, setModalOpen] = useState(false);
   const [accionTipo, setAccionTipo] = useState(null); 
   const [procesando, setProcesando] = useState(false);
@@ -211,15 +293,16 @@ export default function AnalisisDestino() {
           ? `${API_URL}/api/admin/solicitudes/responder` 
            : `${API_URL}/api/admin/solicitudes/responder`; 
 
-          const payloadNotificacion = {
-    idpublicacion: id,
-    remitente_id: sesionActiva.idusuario,
-    destinatario_id: idColaborador, // <-- De aquí sacamos el dato
-    accion: accionTipo === 'aprobado' ? 'aprobar' : 'rechazar',
-    comentarios: "Tu sitio ha sido revisado y publicado ahora es visible para todos",
-    // 🔥 TU IDEA GENIAL APLICADA EN EL ARCHIVO CORRECTO:
-    respuesta_a: solicitudOriginal?.idmensaje || idColaborador 
-};
+        const payloadNotificacion = {
+            idpublicacion: id,
+            remitente_id: sesionActiva.idusuario,
+            destinatario_id: idColaborador, 
+            accion: accionTipo === 'aprobado' ? 'aprobar' : 'rechazar',
+            comentarios: accionTipo === 'aprobado' 
+                ? "Tu sitio ha sido revisado y publicado. Ahora es visible para todos." 
+                : "Tu sitio ha sido rechazado o necesita correcciones. Revisa tu propuesta.",    
+            respuesta_a: solicitudOriginal?.idmensaje || idColaborador 
+        };
           if (solicitudOriginal?.idmensaje) {
               payloadNotificacion.respuesta_a = solicitudOriginal.idmensaje;
           }
@@ -253,7 +336,6 @@ export default function AnalisisDestino() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20 text-left italic font-sans relative">
-      {/* MODAL GESTIÓN */}
       {modalOpen && (
         <div className="fixed inset-0 z-[5000] flex items-center justify-center p-6 bg-slate-900/80 backdrop-blur-md transition-all duration-500 animate-in fade-in">
           <div className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden border border-white/20 transform animate-in zoom-in-95 duration-300 relative">
@@ -314,7 +396,6 @@ export default function AnalisisDestino() {
       </div>
 
       <div className="max-w-5xl mx-auto mt-12 px-8 space-y-12">
-        {/* INFO COLABORADOR */}
         <section className="bg-slate-900 rounded-[2.5rem] p-10 text-white shadow-2xl relative overflow-hidden">
           <div className="relative z-10 flex justify-between items-start">
             <div>
@@ -329,7 +410,6 @@ export default function AnalisisDestino() {
           <div className="absolute right-[-20px] bottom-[-20px] text-white/5 text-8xl font-black uppercase italic select-none">ID: {id.split('-')[0]}</div>
         </section>
 
-        {/* NOMBRE Y CLASIFICACIÓN */}
         <section className="bg-white rounded-[3rem] p-12 border border-slate-200 shadow-sm">
           <div className="flex flex-col gap-4 border-b pb-8 border-slate-100 mb-8">
             <h2 className="text-6xl font-black text-slate-800 italic uppercase leading-none tracking-tighter">{sitio.nombre}</h2>
@@ -349,7 +429,6 @@ export default function AnalisisDestino() {
           </div>
         </section>
 
-        {/* TARIFAS Y HORARIOS */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="bg-white rounded-[3rem] p-10 border border-slate-200 shadow-sm">
             <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-widest mb-8 border-b pb-4 border-slate-50 italic">Tarifas Reportadas</h4>
@@ -385,10 +464,8 @@ export default function AnalisisDestino() {
           </div>
         </section>
 
-        {/* 🚀 EL NUEVO BLOQUE MONSTRUOSO DE CARACTERÍSTICAS 🚀 */}
         <section className="bg-white rounded-[3rem] p-12 border border-slate-200 shadow-sm space-y-12">
           
-          {/* BLOQUE A: Reglas y Permisos */}
           <div>
             <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-widest mb-6 italic border-b border-slate-100 pb-3">A. Reglas y Permisos</h4>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -404,7 +481,6 @@ export default function AnalisisDestino() {
             </div>
           </div>
 
-          {/* BLOQUE B: Amenidades */}
           <div>
             <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-widest mb-6 italic border-b border-slate-100 pb-3">B. Servicios y Amenidades</h4>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -420,7 +496,6 @@ export default function AnalisisDestino() {
             </div>
           </div>
 
-          {/* BLOQUE C: Actividades */}
           <div>
             <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-widest mb-6 italic border-b border-slate-100 pb-3">C. Actividades Destacadas</h4>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -438,12 +513,15 @@ export default function AnalisisDestino() {
 
         </section>
 
-        {/* GALERÍA */}
-        <section className="space-y-6">
-          <GaleriaEvidencia imagenes={sitio.lote_imagenes || sitio.imagenes} imagenPrincipal={sitio.imagen} />
+        {/* 🔥 LLAMADA A LA GALERÍA ACTUALIZADA 🔥 */}
+        <section className="bg-white rounded-[4rem] p-12 border border-slate-200 shadow-sm">
+          <GaleriaEvidencia 
+             imagenes={sitio.lote_imagenes || sitio.imagenes} 
+             imagenPrincipal={sitio.imagen} 
+             videoLink={sitio.video_link} 
+          />
         </section>
 
-        {/* MAPA */}
         <section className="bg-white rounded-[4rem] p-12 border border-slate-200 shadow-sm space-y-8">
           <div className="flex justify-between items-end">
             <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-widest italic">Mapa de Ubicación</h4>

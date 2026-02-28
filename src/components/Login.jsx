@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { API_URL } from '../config';
+
 export default function Login({ alEntrar, alCerrar }) {
   const [vista, setVista] = useState('login'); // 'login', 'registro', 'recuperar'
   const [verClave, setVerClave] = useState(false);
@@ -10,14 +11,13 @@ export default function Login({ alEntrar, alCerrar }) {
     correo: '',
     clave: '', 
     confirmarClave: '',
+    telefono: '', 
     usuarioRecuperar: '' 
   });
   const [mensajeServidor, setMensajeServidor] = useState({ texto: '', tipo: '' });
   const [cargando, setCargando] = useState(false);
 
-  // --- NUEVA LÓGICA: GENERADOR DE UUID Y NOMBRE VÁLIDO PARA JULIO ---
   const generarUUID = () => {
-    // Genera un UUID v4 falso pero válido para la Regex de Julio
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
       const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
       return v.toString(16);
@@ -25,21 +25,19 @@ export default function Login({ alEntrar, alCerrar }) {
   };
 
   const generarNombreImagen = (archivo) => {
-    // 1. UUID de 36 caracteres
     const fakeUUID = generarUUID();
-    
-    // 2. Aleatorio de 10 caracteres
     const aleatorio = Math.random().toString(36).substring(2, 12).replace(/[^a-z0-9]/g, '');
-    
-    // 3. Extensión original
     const extension = archivo.name.split('.').pop().toLowerCase();
-    
-    // 4. Formato exacto requerido por el backend
     return `0000${fakeUUID}perfil-${aleatorio}.${extension}`;
   };
 
   const manejarCambio = (e) => {
     setDatos({ ...datos, [e.target.name]: e.target.value });
+  };
+
+  const manejarTelefono = (e) => {
+      const soloNumeros = e.target.value.replace(/\D/g, '').slice(0, 8);
+      setDatos({ ...datos, telefono: soloNumeros });
   };
 
   const manejarArchivo = (e) => {
@@ -76,6 +74,11 @@ export default function Login({ alEntrar, alCerrar }) {
       return;
     }
 
+    if (vista === 'registro' && datos.telefono.length !== 8) {
+      setMensajeServidor({ texto: "El número de teléfono debe tener 8 dígitos", tipo: 'error' });
+      return;
+    }
+
     setCargando(true);
     setMensajeServidor({ texto: '', tipo: '' });
     const esRegistro = vista === 'registro';
@@ -90,8 +93,8 @@ export default function Login({ alEntrar, alCerrar }) {
         formData.append('password', datos.clave);
         formData.append('password_confirmation', datos.confirmarClave);
         formData.append('rol', "Colaborador");
+        formData.append('numero', `+503${datos.telefono}`);
 
-        // --- APLICACIÓN DEL NUEVO NOMBRE DE FOTO ---
         if (fotoPerfil) {
           const nombreAprobado = generarNombreImagen(fotoPerfil);
           formData.append('foto_perfil', fotoPerfil, nombreAprobado);
@@ -110,7 +113,12 @@ export default function Login({ alEntrar, alCerrar }) {
         }
 
         setMensajeServidor({ texto: "CUENTA CREADA EXITOSAMENTE.", tipo: 'exito' });
-        setTimeout(() => setVista('login'), 3000);
+        
+        setTimeout(() => {
+          setVista('login');
+          // 🔥 Limpiamos la clave pero dejamos el usuario listo para entrar
+          setDatos(prev => ({ ...prev, clave: '', confirmarClave: '' }));
+        }, 3000);
 
       } else {
         const respuesta = await fetch(`${API_URL}/api/login`, {
@@ -170,12 +178,34 @@ export default function Login({ alEntrar, alCerrar }) {
               {vista === 'registro' && (
                 <>
                   <div className="space-y-1">
-                    <label className="text-[9px] font-black uppercase text-slate-400 ml-4 tracking-widest block italic">Nombre Completo</label>
-                    <input type="text" name="nombre" required onChange={manejarCambio} className="w-full px-6 py-4 rounded-2xl bg-slate-50 border border-slate-100 outline-none text-slate-700 font-bold italic text-sm focus:ring-2 focus:ring-blue-500/20" placeholder="Julio Monterrosa" />
+                    <label className="text-[9px] font-black uppercase text-slate-400 ml-4 tracking-widest block italic">Nombre de usuario</label>
+                    {/* 🔥 Se agregó value={datos.nombre} */}
+                    <input type="text" name="nombre" value={datos.nombre} required onChange={manejarCambio} className="w-full px-6 py-4 rounded-2xl bg-slate-50 border border-slate-100 outline-none text-slate-700 font-bold italic text-sm focus:ring-2 focus:ring-blue-500/20" placeholder="Julio Monterrosa" />
                   </div>
+                  
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black uppercase text-slate-400 ml-4 tracking-widest block italic">Número de Teléfono</label>
+                    <div className="flex rounded-2xl bg-slate-50 border border-slate-100 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all">
+                      <span className="inline-flex items-center pl-6 pr-3 text-slate-500 font-black text-sm italic">
+                        +503
+                      </span>
+                      {/* 🔥 Ya tenía value={datos.telefono} */}
+                      <input 
+                        type="tel" 
+                        name="telefono" 
+                        required 
+                        value={datos.telefono} 
+                        onChange={manejarTelefono} 
+                        className="w-full py-4 pr-6 bg-transparent outline-none text-slate-700 font-bold italic text-sm" 
+                        placeholder="71234567" 
+                      />
+                    </div>
+                  </div>
+
                   <div className="space-y-1">
                     <label className="text-[9px] font-black uppercase text-slate-400 ml-4 tracking-widest block italic">Correo Electrónico</label>
-                    <input type="email" name="correo" required onChange={manejarCambio} className="w-full px-6 py-4 rounded-2xl bg-slate-50 border border-slate-100 outline-none text-slate-700 font-bold italic text-sm focus:ring-2 focus:ring-blue-500/20" placeholder="ejemplo@correo.com" />
+                    {/* 🔥 Se agregó value={datos.correo} */}
+                    <input type="email" name="correo" value={datos.correo} required onChange={manejarCambio} className="w-full px-6 py-4 rounded-2xl bg-slate-50 border border-slate-100 outline-none text-slate-700 font-bold italic text-sm focus:ring-2 focus:ring-blue-500/20" placeholder="ejemplo@correo.com" />
                   </div>
                   <div className="space-y-1">
                     <label className="text-[9px] font-black uppercase text-slate-400 ml-4 tracking-widest block italic">Foto de Perfil (Opcional)</label>
@@ -185,14 +215,16 @@ export default function Login({ alEntrar, alCerrar }) {
               )}
 
               <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase text-slate-400 ml-4 tracking-widest block italic">Nombre de Usuario</label>
-                <input type="text" name="usuario" required onChange={manejarCambio} className="w-full px-6 py-4 rounded-2xl bg-slate-50 border border-slate-100 outline-none text-slate-700 font-bold italic text-sm focus:ring-2 focus:ring-blue-500/20" placeholder="Usuario" />
+                <label className="text-[9px] font-black uppercase text-slate-400 ml-4 tracking-widest block italic">Nombre de completo</label>
+                {/* 🔥 Se agregó value={datos.usuario} */}
+                <input type="text" name="usuario" value={datos.usuario} required onChange={manejarCambio} className="w-full px-6 py-4 rounded-2xl bg-slate-50 border border-slate-100 outline-none text-slate-700 font-bold italic text-sm focus:ring-2 focus:ring-blue-500/20" placeholder="Usuario" />
               </div>
 
               <div className="space-y-1">
                 <label className="text-[9px] font-black uppercase text-slate-400 ml-4 tracking-widest block italic">Contraseña</label>
                 <div className="relative">
-                  <input type={verClave ? "text" : "password"} name="clave" required onChange={manejarCambio} className="w-full px-6 py-4 rounded-2xl bg-slate-50 border border-slate-100 outline-none text-slate-700 font-bold text-sm focus:ring-2 focus:ring-blue-500/20" placeholder="********" />
+                  {/* 🔥 Se agregó value={datos.clave} */}
+                  <input type={verClave ? "text" : "password"} name="clave" value={datos.clave} required onChange={manejarCambio} className="w-full px-6 py-4 rounded-2xl bg-slate-50 border border-slate-100 outline-none text-slate-700 font-bold text-sm focus:ring-2 focus:ring-blue-500/20" placeholder="********" />
                   <button type="button" onClick={() => setVerClave(!verClave)} className="absolute right-6 top-1/2 -translate-y-1/2 text-[9px] font-black text-blue-600 uppercase tracking-tighter">
                     {verClave ? "Ocultar" : "Mostrar"}
                   </button>
@@ -214,7 +246,8 @@ export default function Login({ alEntrar, alCerrar }) {
               {vista === 'registro' && (
                 <div className="space-y-1">
                   <label className="text-[9px] font-black uppercase text-slate-400 ml-4 tracking-widest block italic">Confirmar Contraseña</label>
-                  <input type={verClave ? "text" : "password"} name="confirmarClave" required onChange={manejarCambio} className="w-full px-6 py-4 rounded-2xl bg-slate-50 border border-slate-100 outline-none text-slate-700 font-bold text-sm focus:ring-2 focus:ring-blue-500/20" placeholder="********" />
+                  {/* 🔥 Se agregó value={datos.confirmarClave} */}
+                  <input type={verClave ? "text" : "password"} name="confirmarClave" value={datos.confirmarClave} required onChange={manejarCambio} className="w-full px-6 py-4 rounded-2xl bg-slate-50 border border-slate-100 outline-none text-slate-700 font-bold text-sm focus:ring-2 focus:ring-blue-500/20" placeholder="********" />
                 </div>
               )}
 
@@ -254,7 +287,8 @@ export default function Login({ alEntrar, alCerrar }) {
               </p>
               <div className="space-y-1">
                 <label className="text-[9px] font-black uppercase text-slate-400 ml-4 tracking-widest block italic">Nombre de Usuario</label>
-                <input type="text" name="usuarioRecuperar" required onChange={manejarCambio} className="w-full px-6 py-4 rounded-2xl bg-slate-50 border border-slate-100 outline-none text-slate-700 font-bold italic text-sm" placeholder="Usuario" />
+                {/* 🔥 Se agregó value={datos.usuarioRecuperar} */}
+                <input type="text" name="usuarioRecuperar" value={datos.usuarioRecuperar} required onChange={manejarCambio} className="w-full px-6 py-4 rounded-2xl bg-slate-50 border border-slate-100 outline-none text-slate-700 font-bold italic text-sm" placeholder="Usuario" />
               </div>
 
               {/* BOTÓN DE RECUPERACIÓN CON CARGA */}

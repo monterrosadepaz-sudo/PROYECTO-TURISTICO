@@ -4,7 +4,7 @@ import MapaFormulario from './MapaFormulario';
 import { ReactPhotoSphereViewer } from 'react-photo-sphere-viewer';
 import { reglasPermisos, serviciosAmenidades, actividadesDestacadas } from '../data/OpcionesDestino';
 import { API_URL } from '../config'; 
-// (Asegúrate de que la ruta '../config' sea correcta dependiendo de en qué subcarpeta esté DetallePublico.jsx)
+
 const etiquetasTarifas = {
     adultos: "Adultos",
     ninos: "Niños",
@@ -14,11 +14,7 @@ const etiquetasTarifas = {
 // ==============================================================
 // 🛡️ ESCUDO ANTI-CORS CON PROXY NINJA PARA EL VISOR 360
 // ==============================================================
-// --- ESCUDO INMERSIVO 360 (VERSIÓN COMPATIBLE LARAVEL 12) ---
 const Visor360Seguro = ({ url }) => {
-    // IMPORTANTE: No usamos useEffect ni fetch manual. 
-    // Dejamos que la librería pida la imagen directamente.
-    
     return (
         <div className="w-full h-full bg-slate-900 flex items-center justify-center">
             <ReactPhotoSphereViewer 
@@ -27,8 +23,6 @@ const Visor360Seguro = ({ url }) => {
                 width="100%" 
                 littlePlanet={false} 
                 hideNavbarButton={true}
-                // 🚀 ESTE ES EL SECRETO: Forzamos el uso de CORS anónimo
-                // para que el navegador use los headers que Julio puso en index.php
                 onReady={(instance) => {
                     console.log("Sistema inmersivo inicializado correctamente");
                 }}
@@ -37,7 +31,6 @@ const Visor360Seguro = ({ url }) => {
     );
 };
 // ==============================================================
-
 
 export default function DetallePublico() {
   const navigate = useNavigate();
@@ -49,6 +42,14 @@ export default function DetallePublico() {
   const [modalSimbologia, setModalSimbologia] = useState(false);
 
   const todasLasOpciones = [...reglasPermisos, ...serviciosAmenidades, ...actividadesDestacadas];
+
+  // 🔥 Función para extraer el ID de YouTube
+  const extraerIdYoutube = (url) => {
+    if (!url) return null;
+    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/gi;
+    const match = regex.exec(url);
+    return match ? match[1] : null;
+  };
 
   useEffect(() => {
     const cargarDestino = async () => {
@@ -68,24 +69,36 @@ export default function DetallePublico() {
           };
 
           const loteRaw = data.lote_imagenes || data.imagenes;
-          const loteProcesado = { planas: [], panoramas: [], videos: [] };
+          const loteProcesado = { planas: [], panoramas: [], videos: [], youtubeUrl: data.video_link || null };
           
           const procesarUrl = (nombre) => {
-    if (nombre.startsWith('http')) return nombre;
-    if (nombre.includes('publicacion')) return `${API_URL}/storage/publicaciones/${nombre}`;
-    return `${API_URL}/storage/preformularios/${nombre}`;
-};
+            if (nombre.startsWith('http')) return nombre;
+            if (nombre.includes('publicacion')) return `${API_URL}/storage/publicaciones/${nombre}`;
+            return `${API_URL}/storage/preformularios/${nombre}`;
+          };
 
+          // 🔥 EXTRACCIÓN Y FILTRADO (Ignorando "YouTube Video")
           if (loteRaw && typeof loteRaw === 'object' && !Array.isArray(loteRaw)) {
               if (loteRaw.plana) loteProcesado.planas = loteRaw.plana.map(procesarUrl);
-              if (loteRaw['360']) loteProcesado.panoramas = loteRaw['360'].map(procesarUrl);
+              if (loteRaw['360']) {
+                  loteRaw['360'].forEach(img => {
+                      if (img !== "YouTube Video") loteProcesado.panoramas.push(procesarUrl(img));
+                  });
+              }
               if (loteRaw.video) loteProcesado.videos = loteRaw.video.map(procesarUrl);
+              
+              if (!loteProcesado.youtubeUrl && loteRaw.youtube) {
+                  const yt = Array.isArray(loteRaw.youtube) ? loteRaw.youtube[0] : loteRaw.youtube;
+                  if (yt && yt !== "YouTube Video") loteProcesado.youtubeUrl = yt;
+              }
           } else if (Array.isArray(loteRaw)) {
               loteRaw.forEach(img => {
-                  const url = procesarUrl(img);
-                  if (url.match(/\.(mp4|mov)$/i)) loteProcesado.videos.push(url);
-                  else if (url.includes('-360')) loteProcesado.panoramas.push(url);
-                  else loteProcesado.planas.push(url);
+                  if (img !== "YouTube Video") {
+                      const url = procesarUrl(img);
+                      if (url.match(/\.(mp4|mov)$/i)) loteProcesado.videos.push(url);
+                      else if (url.includes('-360')) loteProcesado.panoramas.push(url);
+                      else loteProcesado.planas.push(url);
+                  }
               });
           }
 
@@ -159,6 +172,8 @@ export default function DetallePublico() {
   if (cargando) return <div className="min-h-screen flex items-center justify-center font-black text-blue-600 animate-pulse uppercase italic tracking-widest">Sincronizando Destino...</div>;
   if (!sitio) return <div className="min-h-screen flex items-center justify-center font-black text-slate-400 uppercase italic">Destino no encontrado</div>;
 
+  const videoYoutubeId = extraerIdYoutube(sitio.loteClasificado.youtubeUrl);
+
   return (
     <div className="min-h-screen bg-white pb-32 italic font-sans text-left relative">
       
@@ -177,7 +192,6 @@ export default function DetallePublico() {
                     <button onClick={() => setModalSimbologia(false)} className="text-xl font-black text-slate-400 hover:text-red-500 transition-colors">✕</button>
                 </div>
                 
-                {/* Scrollbar estilizada con Tailwind para arreglar el warning jsx */}
                 <div className="overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
                     <CatalogoSimbologia titulo="Reglas y Permisos" opciones={reglasPermisos} />
                     <CatalogoSimbologia titulo="Servicios y Amenidades" opciones={serviciosAmenidades} />
@@ -199,7 +213,6 @@ export default function DetallePublico() {
             ) : fotoZoom.tipo === '360' ? (
                 <div className="w-full max-w-6xl h-[70vh] md:h-[85vh] rounded-[3rem] overflow-hidden shadow-2xl relative cursor-move animate-in zoom-in-95 duration-500 border-8 border-white/10" onClick={e => e.stopPropagation()}>
                     
-                    {/* AQUI SE MANDA LLAMAR AL ESCUDO ANTI CORS */}
                     <Visor360Seguro url={fotoZoom.url} />
 
                     <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-md text-white px-8 py-4 rounded-full pointer-events-none z-10 shadow-2xl border border-white/20">
@@ -278,11 +291,33 @@ export default function DetallePublico() {
             </div>
         </section>
 
+        {/* 🔥 SECCIÓN MULTIMEDIA PÚBLICA 🔥 */}
         <section className="space-y-8 bg-white p-8 md:p-10 rounded-[3rem] shadow-sm border border-slate-200">
             <div className="border-b border-slate-100 pb-4 mb-6">
                 <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Evidencia Visual del Destino</h4>
             </div>
 
+            {/* YOUTUBE (PÚBLICO) */}
+            {videoYoutubeId && (
+                <div className="space-y-4 mb-10">
+                    <h5 className="text-[10px] font-black text-red-500 uppercase tracking-widest flex items-center gap-2">
+                        <span className="bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[8px]">▶</span> Recorrido en Video
+                    </h5>
+                    <div className="w-full aspect-video rounded-[2rem] overflow-hidden border-4 border-slate-900 bg-black shadow-lg">
+                        <iframe 
+                            width="100%" 
+                            height="100%" 
+                            src={`https://www.youtube.com/embed/${videoYoutubeId}?rel=0`} 
+                            title="Visor YouTube" 
+                            frameBorder="0" 
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                            allowFullScreen
+                        ></iframe>
+                    </div>
+                </div>
+            )}
+
+            {/* FOTOGRAFÍAS */}
             <div className="space-y-4">
                 <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-blue-600 inline-block"></span> Fotografías ({sitio.loteClasificado.planas.length})
@@ -298,6 +333,7 @@ export default function DetallePublico() {
                 ) : <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 p-4 rounded-xl border border-slate-100 w-max">Sin fotografías</p>}
             </div>
 
+            {/* VISTAS 360 */}
             <div className="space-y-4">
                 <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span> Panorámicas 360° ({sitio.loteClasificado.panoramas.length})
@@ -317,6 +353,7 @@ export default function DetallePublico() {
                 ) : <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 p-4 rounded-xl border border-slate-100 w-max">Sin vistas panorámicas</p>}
             </div>
 
+            {/* VIDEOS MP4 */}
             <div className="space-y-4">
                 <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-slate-800 inline-block"></span> Videos ({sitio.loteClasificado.videos.length})

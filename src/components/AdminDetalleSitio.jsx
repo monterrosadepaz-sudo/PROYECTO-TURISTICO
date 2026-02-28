@@ -4,32 +4,102 @@ import MapaFormulario from './MapaFormulario';
 import { reglasPermisos, serviciosAmenidades, actividadesDestacadas } from '../data/OpcionesDestino';
 import { API_URL } from '../config';
 
-// --- COMPONENTE DE GALERÍA INTELIGENTE ---
-const GaleriaEvidencia = ({ imagenes, imagenPrincipal }) => {
+// --- COMPONENTE DE GALERÍA INTELIGENTE PARA EL ADMIN ---
+const GaleriaEvidencia = ({ imagenes, imagenPrincipal, videoLink }) => {
   const [fotoSeleccionada, setFotoSeleccionada] = useState(null);
   let listaMultimedia = [];
   
+  let urlYoutubeReal = videoLink && videoLink !== "YouTube Video" ? videoLink : null;
+
+  const extraerIdYoutube = (url) => {
+    if (!url) return null;
+    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/gi;
+    const match = regex.exec(url);
+    return match ? match[1] : null;
+  };
+
   if (imagenes && typeof imagenes === 'object' && !Array.isArray(imagenes)) {
       if (imagenes.plana && Array.isArray(imagenes.plana)) {
           imagenes.plana.forEach(img => listaMultimedia.push({ url: img, tipo: 'plana' }));
       }
       if (imagenes['360'] && Array.isArray(imagenes['360'])) {
-          imagenes['360'].forEach(img => listaMultimedia.push({ url: img, tipo: '360' }));
+          imagenes['360'].forEach(img => {
+              if (img !== "YouTube Video") listaMultimedia.push({ url: img, tipo: '360' });
+          });
       }
       if (imagenes.video && Array.isArray(imagenes.video)) {
           imagenes.video.forEach(vid => listaMultimedia.push({ url: vid, tipo: 'video' }));
       }
+      if (!urlYoutubeReal && imagenes.youtube) {
+          const yt = Array.isArray(imagenes.youtube) ? imagenes.youtube[0] : imagenes.youtube;
+          if (yt && yt !== "YouTube Video") urlYoutubeReal = yt;
+      }
   } else if (imagenes && Array.isArray(imagenes) && imagenes.length > 0) {
       imagenes.forEach(img => {
           const urlStr = img.url_imagen || img;
-          const tipo = urlStr.includes('.mp4') ? 'video' : (urlStr.includes('-360') ? '360' : 'plana');
-          listaMultimedia.push({ url: urlStr, tipo: tipo });
+          if (urlStr !== "YouTube Video") {
+              const tipo = urlStr.includes('.mp4') ? 'video' : (urlStr.includes('-360') ? '360' : 'plana');
+              listaMultimedia.push({ url: urlStr, tipo: tipo });
+          }
       });
-  } else if (imagenPrincipal) {
+  } else if (imagenPrincipal && imagenPrincipal !== "YouTube Video") {
       listaMultimedia.push({ url: imagenPrincipal, tipo: 'plana' });
   }
 
-  if (listaMultimedia.length === 0) return <div className="p-10 bg-slate-50 rounded-[2rem] text-center text-slate-400 font-bold uppercase italic border border-slate-100">Sin evidencia visual disponible.</div>;
+  const videoYoutubeId = extraerIdYoutube(urlYoutubeReal);
+
+  const obtenerRutaSegura = (nombre) => {
+      if (!nombre) return '';
+      if (nombre.startsWith('http')) return nombre;
+      if (nombre.includes('publicacion')) return `${API_URL}/storage/publicaciones/${nombre}`;
+      return `${API_URL}/storage/preformularios/${nombre}`;
+  };
+
+  if (listaMultimedia.length === 0 && !urlYoutubeReal) {
+      return <div className="p-10 bg-slate-50 rounded-[2rem] text-center text-slate-400 font-bold uppercase italic border border-slate-100">Sin evidencia visual disponible.</div>;
+  }
+
+  const fotosPlanas = listaMultimedia.filter(item => item.tipo === 'plana');
+  const fotos360 = listaMultimedia.filter(item => item.tipo === '360');
+  const videosMp4 = listaMultimedia.filter(item => item.tipo === 'video');
+
+  const renderCuadricula = (items) => (
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
+      {items.map((item, index) => {
+        const rutaCompleta = obtenerRutaSegura(item.url); 
+        return (
+          <div key={index} onClick={() => setFotoSeleccionada({ url: rutaCompleta, tipo: item.tipo })} className="group relative aspect-square rounded-[1.5rem] overflow-hidden border-2 border-slate-100 shadow-sm bg-slate-900 cursor-zoom-in">
+            {item.tipo === 'video' ? (
+                <>
+                    <video src={`${rutaCompleta}#t=0.001`} className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity duration-500" preload="metadata" muted />
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="bg-white/30 backdrop-blur-sm w-10 h-10 rounded-full flex items-center justify-center text-white pl-1 shadow-lg border border-white/50 text-sm">▶</div>
+                    </div>
+                </>
+            ) : (
+                <img 
+                  src={rutaCompleta} 
+                  className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 ${item.tipo === '360' ? 'saturate-110' : ''}`} 
+                  alt={`Evidencia ${index + 1}`} 
+                  onError={(e) => {
+                      if(e.target.src.includes('publicaciones')) {
+                          e.target.src = rutaCompleta.replace('publicaciones', 'preformularios');
+                      } else {
+                          e.target.style.display = 'none';
+                      }
+                  }}
+                />
+            )}
+            {item.tipo === '360' ? (
+                <div className="absolute bottom-3 left-3 bg-blue-600 text-white text-[8px] font-black px-2 py-1 rounded-full shadow-md uppercase tracking-widest">360°</div>
+            ) : (
+                <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md text-white text-[7px] font-black px-2 py-1 rounded-lg uppercase tracking-widest">{item.tipo === 'video' ? 'VIDEO' : `IMG 0${index + 1}`}</div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
 
   return (
     <>
@@ -38,7 +108,7 @@ const GaleriaEvidencia = ({ imagenes, imagenPrincipal }) => {
           <button className="absolute top-6 right-6 bg-white/10 hover:bg-white/30 text-white rounded-full p-4 transition-all z-10">✕</button>
           {fotoSeleccionada.tipo === 'video' ? (
               <video controls autoPlay className="max-w-full max-h-[90vh] object-contain shadow-2xl rounded-lg animate-in zoom-in-95 duration-300" onClick={(e) => e.stopPropagation()}>
-                  <source src={fotoSeleccionada.url} />
+                  <source src={fotoSeleccionada.url} type="video/mp4" />
               </video>
           ) : (
               <img src={fotoSeleccionada.url} className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-300 select-none" onClick={(e) => e.stopPropagation()} alt="Zoom" />
@@ -46,50 +116,70 @@ const GaleriaEvidencia = ({ imagenes, imagenPrincipal }) => {
         </div>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-        {listaMultimedia.map((item, index) => {
-          const rutaCompleta = item.url.startsWith('http') ? item.url :`${API_URL}/storage/publicaciones/${item.url}`;
-          
-          return (
-            <div 
-              key={index} 
-              onClick={() => setFotoSeleccionada({ url: rutaCompleta, tipo: item.tipo })} 
-              className="group relative aspect-square rounded-[1.5rem] overflow-hidden border-2 border-slate-100 shadow-sm bg-slate-900 cursor-zoom-in"
-            >
-              {item.tipo === 'video' ? (
-                  <>
-                      <video src={`${rutaCompleta}#t=0.001`} className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity duration-500" preload="metadata" muted />
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                          <div className="bg-white/30 backdrop-blur-sm w-10 h-10 rounded-full flex items-center justify-center text-white pl-1 shadow-lg border border-white/50 text-sm">▶</div>
-                      </div>
-                  </>
-              ) : (
-                  <img 
-                    src={rutaCompleta} 
-                    className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 ${item.tipo === '360' ? 'saturate-110' : ''}`} 
-                    alt={`Evidencia ${index + 1}`} 
-                    onError={(e) => {
-                        if(e.target.src.includes('publicaciones')) {
-                            e.target.src = rutaCompleta.replace('publicaciones', 'preformularios');
-                        } else {
-                            e.target.style.display = 'none';
-                        }
-                    }} 
-                  />
-              )}
-              
-              {item.tipo === '360' ? (
-                  <div className="absolute bottom-3 left-3 bg-blue-600 text-white text-[8px] font-black px-2 py-1 rounded-full shadow-md uppercase tracking-widest">
-                      360°
-                  </div>
-              ) : (
-                  <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md text-white text-[7px] font-black px-2 py-1 rounded-lg uppercase tracking-widest">
-                      {item.tipo === 'video' ? 'VIDEO' : `IMG 0${index + 1}`}
-                  </div>
-              )}
+      <div className="space-y-10">
+        
+        {urlYoutubeReal && (
+            <div className="space-y-4">
+                <h5 className="text-red-500 text-[11px] font-black uppercase tracking-widest italic px-4 flex items-center gap-2 border-b border-slate-100 pb-2">
+                  <span className="bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px]">▶</span>
+                  Video Recorrido (YouTube)
+                </h5>
+                <div className="p-4 bg-white rounded-3xl border border-slate-100 shadow-sm flex flex-col lg:flex-row items-center gap-6 group hover:shadow-md transition-shadow">
+                    <div className="w-full lg:w-64 aspect-video bg-slate-900 rounded-[2rem] overflow-hidden relative shadow-lg shrink-0">
+                        {videoYoutubeId ? (
+                            <>
+                                <img 
+                                  src={`https://img.youtube.com/vi/${videoYoutubeId}/maxresdefault.jpg`} 
+                                  onError={(e) => e.target.src = `https://img.youtube.com/vi/${videoYoutubeId}/hqdefault.jpg`} 
+                                  className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-500" 
+                                  alt="Miniatura YouTube" 
+                                />
+                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                    <div className="bg-red-600 text-white w-12 h-12 rounded-full flex items-center justify-center text-xl shadow-xl border-2 border-white/50">▶</div>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs font-bold uppercase tracking-widest">URL Inválida</div>
+                        )}
+                    </div>
+                    <div className="flex-1 overflow-hidden text-center lg:text-left w-full">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Enlace de Video Adjunto:</p>
+                        <a href={urlYoutubeReal} target="_blank" rel="noreferrer" className="text-sm font-bold text-blue-600 hover:text-blue-800 hover:underline italic truncate block w-full bg-blue-50/50 p-3 rounded-xl border border-blue-100">
+                            {urlYoutubeReal}
+                        </a>
+                        <p className="text-[8px] text-slate-400 mt-3 uppercase tracking-widest font-bold">Haz clic en el enlace para abrirlo en YouTube</p>
+                    </div>
+                </div>
             </div>
-          );
-        })}
+        )}
+
+        {fotos360.length > 0 && (
+            <div className="space-y-4">
+                <h5 className="text-blue-600 text-[11px] font-black uppercase tracking-widest italic px-4 flex items-center gap-2 border-b border-slate-100 pb-2">
+                  <span className="text-lg">🌐</span> Fotografías 360° Inmersivas
+                </h5>
+                {renderCuadricula(fotos360)}
+            </div>
+        )}
+
+        {videosMp4.length > 0 && (
+            <div className="space-y-4">
+                <h5 className="text-purple-600 text-[11px] font-black uppercase tracking-widest italic px-4 flex items-center gap-2 border-b border-slate-100 pb-2">
+                  <span className="text-lg">🎬</span> Videos Cortos (MP4)
+                </h5>
+                {renderCuadricula(videosMp4)}
+            </div>
+        )}
+
+        {fotosPlanas.length > 0 && (
+            <div className="space-y-4">
+                <h5 className="text-slate-600 text-[11px] font-black uppercase tracking-widest italic px-4 flex items-center gap-2 border-b border-slate-100 pb-2">
+                  <span className="text-lg">📷</span> Fotografías Estándar
+                </h5>
+                {renderCuadricula(fotosPlanas)}
+            </div>
+        )}
+
       </div>
     </>
   );
@@ -152,15 +242,11 @@ export default function AdminDetalleSitio() {
   };
 
 const notificarUsuario = async (accionRealizada, mensajePersonalizado) => {
-      // 1. Obtenemos el destinatario de donde sea posible
       const idUsuarioDestino = datosSolicitud?.remitente_id || sitio?.idusuario || sitio?.colaborador_id; 
       
       if (!idUsuarioDestino || !sesionAdmin?.idusuario) return;
 
       try {
-          // 2. Construimos el payload, asegurándonos de que respuesta_a SIEMPRE tenga un valor válido.
-          // Si no hay idmensaje, usamos el ID del destino como hack. Si por alguna razón extraña 
-          // el ID del destino falla, mandamos el ID de la publicación como último recurso.
           const payload = {
               "idpublicacion": id,
               "remitente_id": sesionAdmin.idusuario, 
@@ -169,10 +255,6 @@ const notificarUsuario = async (accionRealizada, mensajePersonalizado) => {
               "comentarios": mensajePersonalizado,
               "respuesta_a": idUsuarioDestino
           };
-
-          // --- SOLO PARA DEPURAR (Borra esto después) ---
-          console.log("🚀 Payload a enviar:", payload); 
-          // ----------------------------------------------
 
           await fetch(`${API_URL}/api/admin/solicitudes/responder`, { 
               method: 'POST',
@@ -228,9 +310,9 @@ const notificarUsuario = async (accionRealizada, mensajePersonalizado) => {
   return (
     <div className="min-h-screen bg-slate-50 italic font-sans pb-20">
       
-      {/* BANNER DE SOLICITUD */}
+      {/* 🔥 BANNER DE SOLICITUD - SE QUITO EL STICKY 🔥 */}
       {datosSolicitud && (
-        <div className="bg-slate-900 text-white px-8 py-6 sticky top-0 z-[200] shadow-2xl animate-in slide-in-from-top duration-500">
+        <div className="bg-slate-900 text-white px-8 py-6 relative z-[200] shadow-2xl animate-in slide-in-from-top duration-500">
             <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div className="space-y-1">
                     <div className="flex items-center gap-3">
@@ -256,24 +338,25 @@ const notificarUsuario = async (accionRealizada, mensajePersonalizado) => {
         </div>
       )}
 
-      {/* 🚀 HERO ACTUALIZADO (Letras Blancas, Fondo Oscuro Elegante) 🚀 */}
+      {/* 🚀 HERO ACTUALIZADO (Lógica de Imagen Corregida) 🚀 */}
       <div className="relative h-[45vh] w-full overflow-hidden bg-slate-950">
-        <img 
-            src={`${API_URL}/storage/publicaciones/${sitio.imagen}`} 
-            className="w-full h-full object-cover opacity-50 mix-blend-overlay"
-            onError={(e) => {
-    // IMPORTANTE: Primero apagamos el error para romper cualquier bucle
-    e.target.onerror = null; 
-    
-    if (e.target.src.includes('publicaciones')) {
-        e.target.src = e.target.src.replace('publicaciones', 'preformularios');
-    } else {
-        // Usamos la imagen local que guardaste en /public
-        e.target.src = '/default.jpg'; 
-    }
-}}
-            alt=""
-        />
+        {sitio.imagen && (
+            <img 
+                src={`${API_URL}/storage/publicaciones/${sitio.imagen}`} 
+                className="w-full h-full object-cover opacity-50 mix-blend-overlay"
+                onError={(e) => {
+                    e.target.onerror = null; 
+                    if (e.target.src.includes('publicaciones')) {
+                        e.target.src = e.target.src.replace('publicaciones', 'preformularios');
+                    } else {
+                        // 🔥 Si falla todo, ocultamos el tag para que no se vea fallback ni icono roto
+                        e.target.style.display = 'none'; 
+                    }
+                }}
+                alt=""
+            />
+        )}
+        {/* Degradado siempre visible sobre el fondo oscuro */}
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent"></div>
         
         <button onClick={() => navigate(-1)} className="absolute top-8 left-8 z-[100] cursor-pointer bg-white/10 hover:bg-white/20 backdrop-blur-md text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg border border-white/10">← Volver</button>
@@ -377,7 +460,11 @@ const notificarUsuario = async (accionRealizada, mensajePersonalizado) => {
             {/* GALERÍA MULTIMEDIA */}
             <div className="bg-white p-10 rounded-[3rem] shadow-xl border border-slate-100">
                 <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-widest italic mb-6">Evidencia Multimedia</h4>
-                <GaleriaEvidencia imagenes={sitio.lote_imagenes} imagenPrincipal={sitio.imagen} />
+                <GaleriaEvidencia 
+                    imagenes={sitio.lote_imagenes || sitio.imagenes} 
+                    imagenPrincipal={sitio.imagen} 
+                    videoLink={sitio.video_link || sitio.youtubeVideo} 
+                />
             </div>
 
         </div>
