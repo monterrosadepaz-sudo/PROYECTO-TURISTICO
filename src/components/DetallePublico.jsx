@@ -11,9 +11,6 @@ const etiquetasTarifas = {
     terceraEdad: "Tercera Edad"
 };
 
-// ==============================================================
-// 🛡️ ESCUDO ANTI-CORS CON PROXY NINJA PARA EL VISOR 360
-// ==============================================================
 const Visor360Seguro = ({ url }) => {
     return (
         <div className="w-full h-full bg-slate-900 flex items-center justify-center">
@@ -30,7 +27,6 @@ const Visor360Seguro = ({ url }) => {
         </div>
     );
 };
-// ==============================================================
 
 export default function DetallePublico() {
   const navigate = useNavigate();
@@ -43,7 +39,6 @@ export default function DetallePublico() {
 
   const todasLasOpciones = [...reglasPermisos, ...serviciosAmenidades, ...actividadesDestacadas];
 
-  // 🔥 Función para extraer el ID de YouTube
   const extraerIdYoutube = (url) => {
     if (!url) return null;
     const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/gi;
@@ -77,7 +72,6 @@ export default function DetallePublico() {
             return `${API_URL}/storage/preformularios/${nombre}`;
           };
 
-          // 🔥 EXTRACCIÓN Y FILTRADO (Ignorando "YouTube Video")
           if (loteRaw && typeof loteRaw === 'object' && !Array.isArray(loteRaw)) {
               if (loteRaw.plana) loteProcesado.planas = loteRaw.plana.map(procesarUrl);
               if (loteRaw['360']) {
@@ -118,6 +112,16 @@ export default function DetallePublico() {
     cargarDestino();
   }, [id]);
 
+  // --- Lógica MODO AR o VR ---
+  const abrirModoAR = () => {
+    const idVideo = extraerIdYoutube(sitio.loteClasificado.youtubeUrl);
+    if (idVideo) {
+      // Abrimos en una nueva pestaña con parámetros de reproducción automática
+      const urlAR = `https://www.youtube.com/v/${idVideo}?autoplay=1&fs=1`;
+      window.open(urlAR, '_blank');
+    }
+  };
+
   const GrupoIconos = ({ titulo, opciones, colorTitulo }) => {
       const activos = opciones.filter(opt => sitio.politicas[opt.id] === true);
       if (activos.length === 0) return null;
@@ -128,17 +132,17 @@ export default function DetallePublico() {
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4 md:gap-6">
                   {activos.map(opt => (
                       <div key={opt.id} className="flex flex-col items-center justify-start gap-2 text-center group">
-                          <div className="w-14 h-14 bg-white border border-slate-200 rounded-2xl flex items-center justify-center p-3 transition-all duration-300 shadow-sm">
-                              <img 
-                                  src={`/icons/${opt.id}.png`} 
-                                  alt={opt.label} 
-                                  className="w-full h-full object-contain opacity-70"
-                                  onError={(e) => {
-                                      e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M5 13l4 4L19 7'%3E%3C/path%3E%3C/svg%3E";
-                                  }}
-                              />
-                          </div>
-                          <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest text-slate-500 leading-tight">{opt.label}</span>
+                        <div className="w-14 h-14 bg-white border border-slate-200 rounded-2xl flex items-center justify-center p-3 transition-all duration-300 shadow-sm">
+                            <img 
+                                src={`/icons/${opt.id}.png`} 
+                                alt={opt.label} 
+                                className="w-full h-full object-contain opacity-70"
+                                onError={(e) => {
+                                    e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M5 13l4 4L19 7'%3E%3C/path%3E%3C/svg%3E";
+                                }}
+                            />
+                        </div>
+                        <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest text-slate-500 leading-tight">{opt.label}</span>
                       </div>
                   ))}
               </div>
@@ -201,7 +205,6 @@ export default function DetallePublico() {
         </div>
       )}
 
-      {/* MODAL DE ZOOM MEJORADO (SOPORTA 360 CON PROXY NINJA) */}
       {fotoZoom && (
         <div className="fixed inset-0 z-[6000] bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in duration-300" onClick={() => setFotoZoom(null)}>
             <button className="absolute top-8 right-8 text-white/50 hover:text-white text-3xl font-black hover:scale-110 transition-all z-10 bg-black/20 w-12 h-12 rounded-full flex items-center justify-center">✕</button>
@@ -246,7 +249,7 @@ export default function DetallePublico() {
             </span>
             {sitio.clasificacion && sitio.clasificacion[0] && (
                 <span className="border-2 border-emerald-500 text-emerald-600 text-[9px] font-black px-4 py-1.5 rounded-xl uppercase tracking-widest">
-                    {sitio.clasificacion[0]}
+                  {sitio.clasificacion[0]}
                 </span>
             )}
           </div>
@@ -291,19 +294,26 @@ export default function DetallePublico() {
             </div>
         </section>
 
-        {/* 🔥 SECCIÓN MULTIMEDIA PÚBLICA 🔥 */}
         <section className="space-y-8 bg-white p-8 md:p-10 rounded-[3rem] shadow-sm border border-slate-200">
             <div className="border-b border-slate-100 pb-4 mb-6">
                 <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Evidencia Visual del Destino</h4>
             </div>
 
-            {/* YOUTUBE (PÚBLICO) */}
             {videoYoutubeId && (
                 <div className="space-y-4 mb-10">
-                    <h5 className="text-[10px] font-black text-red-500 uppercase tracking-widest flex items-center gap-2">
-                        <span className="bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[8px]">▶</span> Recorrido en Video
-                    </h5>
-                    <div className="w-full aspect-video rounded-[2rem] overflow-hidden border-4 border-slate-900 bg-black shadow-lg">
+                    <div className="flex justify-between items-center px-2">
+                        <h5 className="text-[10px] font-black text-red-500 uppercase tracking-widest flex items-center gap-2">
+                            <span className="bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[8px]">▶</span> Recorrido en Video
+                        </h5>
+                        {/* BOTÓN MODO AR */}
+                        <button 
+                            onClick={abrirModoAR}
+                            className="bg-blue-600 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-[0.1em] hover:bg-blue-700 transition-all shadow-md active:scale-95 flex items-center gap-2 group"
+                        >
+                            <span className="text-sm group-hover:rotate-12 transition-transform">🥽</span> MODO VR
+                        </button>
+                    </div>
+                    <div className="w-full aspect-video rounded-[2rem] overflow-hidden border-10 border-slate-1000 bg-black shadow-lg">
                         <iframe 
                             width="100%" 
                             height="100%" 
@@ -317,7 +327,6 @@ export default function DetallePublico() {
                 </div>
             )}
 
-            {/* FOTOGRAFÍAS */}
             <div className="space-y-4">
                 <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-blue-600 inline-block"></span> Fotografías ({sitio.loteClasificado.planas.length})
@@ -333,7 +342,6 @@ export default function DetallePublico() {
                 ) : <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 p-4 rounded-xl border border-slate-100 w-max">Sin fotografías</p>}
             </div>
 
-            {/* VISTAS 360 */}
             <div className="space-y-4">
                 <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span> Panorámicas 360° ({sitio.loteClasificado.panoramas.length})
@@ -353,7 +361,6 @@ export default function DetallePublico() {
                 ) : <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 p-4 rounded-xl border border-slate-100 w-max">Sin vistas panorámicas</p>}
             </div>
 
-            {/* VIDEOS MP4 */}
             <div className="space-y-4">
                 <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-slate-800 inline-block"></span> Videos ({sitio.loteClasificado.videos.length})
@@ -394,6 +401,7 @@ export default function DetallePublico() {
             </div>
             <div className="h-72 md:h-96 rounded-[2rem] overflow-hidden border-4 border-slate-50 shadow-inner relative z-0">
                 <MapaFormulario ubicacionActual={sitio.coordenadas} setUbicacion={() => {}} />
+                    
             </div>
         </section>
 

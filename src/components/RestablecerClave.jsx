@@ -1,21 +1,20 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom'; // 🔥 Usamos useParams
+import { useParams, useNavigate } from 'react-router-dom'; 
 import { API_URL } from '../config';
 
 export default function RestablecerClave({ alTerminar }) {
-  const { idusuario } = useParams(); // 🆔 Captura el ID directamente de la ruta /restablecer/:idusuario
+  const { idusuario } = useParams(); 
   const navigate = useNavigate();
   
-  // 🔥 PARCHE ANTI-JULIO: Limpiamos el ID por si acaso viene duplicado con la coma
+
   const idUsuarioCambiando = idusuario ? idusuario.split(',')[0] : null; 
   
   const [claves, setClaves] = useState({ nueva: '', confirmar: '' });
   const [mensaje, setMensaje] = useState({ texto: '', tipo: '' });
   const [cargando, setCargando] = useState(false);
   
-  // 👀 Estado para mostrar/ocultar contraseña
+  
   const [verClave, setVerClave] = useState(false);
-  // ✨ Estado para el Modal de Éxito
   const [mostrarModalExito, setMostrarModalExito] = useState(false);
 
   const manejarCambio = (e) => {
@@ -47,7 +46,6 @@ export default function RestablecerClave({ alTerminar }) {
       data.append('_method', 'PUT'); 
       data.append('password', claves.nueva);
 
-      // 🔥 LE PEGAMOS AL ENDPOINT DE PERFIL DIRECTAMENTE 🔥
       const respuesta = await fetch(`${API_URL}/api/usuarios/${idUsuarioCambiando}`, {
         method: 'POST', 
         body: data,
@@ -79,7 +77,6 @@ export default function RestablecerClave({ alTerminar }) {
   return (
     <div className="min-h-[400px] flex flex-col justify-center p-10 space-y-8 animate-in fade-in duration-500 text-left relative">
       
-      {/* 🏆 MODAL DE ÉXITO PREMIUM 🏆 */}
       {mostrarModalExito && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-500">
             <div className="bg-white p-12 rounded-[3.5rem] shadow-2xl flex flex-col items-center gap-6 animate-in zoom-in duration-300 max-w-sm text-center">

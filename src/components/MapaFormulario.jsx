@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-
-// Configuración de iconos para evitar que desaparezcan
 import icon from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 let DefaultIcon = L.icon({
@@ -14,7 +12,6 @@ let DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
-// Componente interno para mover la cámara del mapa
 function ActualizarVistaMapa({ coords }) {
   const map = useMap();
   useEffect(() => {
@@ -31,7 +28,6 @@ const MapaFormulario = ({ setUbicacion, ubicacionActual }) => {
   const [terminoBusqueda, setTerminoBusqueda] = useState("");
   const [cargando, setCargando] = useState(false);
 
-  // Sincronizar posición local si cambia desde afuera (inputs manuales)
   useEffect(() => {
     if (ubicacionActual) {
       setPosicion(ubicacionActual);
@@ -97,7 +93,6 @@ const MapaFormulario = ({ setUbicacion, ubicacionActual }) => {
   return (
     <div className="espacio-mapa" style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
       
-      {/* BARRA DE BÚSQUEDA PERSISTENTE */}
       <div style={{ display: 'flex', gap: '10px' }}>
         <input 
           type="text"
@@ -144,12 +139,11 @@ const MapaFormulario = ({ setUbicacion, ubicacionActual }) => {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           <ClickMapa />
-          {/* Mueve la cámara cuando 'posicion' cambia (ya sea por clic, busqueda o input manual) */}
+    
           <ActualizarVistaMapa coords={posicion} />
         </MapContainer>
       </div>
-
-      {/* RESULTADO DE SELECCIÓN */}
+      
       {posicion && (
         <div style={{ 
           backgroundColor: '#eff6ff', 

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { API_URL } from '../config';
 
 export default function Login({ alEntrar, alCerrar }) {
-  const [vista, setVista] = useState('login'); // 'login', 'registro', 'recuperar'
+  const [vista, setVista] = useState('login'); 
   const [verClave, setVerClave] = useState(false);
   const [fotoPerfil, setFotoPerfil] = useState(null); 
   const [datos, setDatos] = useState({ 
@@ -116,7 +116,7 @@ export default function Login({ alEntrar, alCerrar }) {
         
         setTimeout(() => {
           setVista('login');
-          // 🔥 Limpiamos la clave pero dejamos el usuario listo para entrar
+          
           setDatos(prev => ({ ...prev, clave: '', confirmarClave: '' }));
         }, 3000);
 
@@ -189,7 +189,7 @@ export default function Login({ alEntrar, alCerrar }) {
                       <span className="inline-flex items-center pl-6 pr-3 text-slate-500 font-black text-sm italic">
                         +503
                       </span>
-                      {/* 🔥 Ya tenía value={datos.telefono} */}
+                     
                       <input 
                         type="tel" 
                         name="telefono" 
@@ -197,14 +197,14 @@ export default function Login({ alEntrar, alCerrar }) {
                         value={datos.telefono} 
                         onChange={manejarTelefono} 
                         className="w-full py-4 pr-6 bg-transparent outline-none text-slate-700 font-bold italic text-sm" 
-                        placeholder="71234567" 
+                        placeholder="11111111" 
                       />
                     </div>
                   </div>
 
                   <div className="space-y-1">
                     <label className="text-[9px] font-black uppercase text-slate-400 ml-4 tracking-widest block italic">Correo Electrónico</label>
-                    {/* 🔥 Se agregó value={datos.correo} */}
+                   
                     <input type="email" name="correo" value={datos.correo} required onChange={manejarCambio} className="w-full px-6 py-4 rounded-2xl bg-slate-50 border border-slate-100 outline-none text-slate-700 font-bold italic text-sm focus:ring-2 focus:ring-blue-500/20" placeholder="ejemplo@correo.com" />
                   </div>
                   <div className="space-y-1">
@@ -216,14 +216,14 @@ export default function Login({ alEntrar, alCerrar }) {
 
               <div className="space-y-1">
                 <label className="text-[9px] font-black uppercase text-slate-400 ml-4 tracking-widest block italic">Nombre de completo</label>
-                {/* 🔥 Se agregó value={datos.usuario} */}
+                
                 <input type="text" name="usuario" value={datos.usuario} required onChange={manejarCambio} className="w-full px-6 py-4 rounded-2xl bg-slate-50 border border-slate-100 outline-none text-slate-700 font-bold italic text-sm focus:ring-2 focus:ring-blue-500/20" placeholder="Usuario" />
               </div>
 
               <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase text-slate-400 ml-4 tracking-widest block italic">Contraseña</label>
+                <label className="text-[9px] font-black uppercase text-slate-400 ml-4 tracking-widest block italic">Contraseña *Minimo 8 caracteres* </label>
                 <div className="relative">
-                  {/* 🔥 Se agregó value={datos.clave} */}
+                  
                   <input type={verClave ? "text" : "password"} name="clave" value={datos.clave} required onChange={manejarCambio} className="w-full px-6 py-4 rounded-2xl bg-slate-50 border border-slate-100 outline-none text-slate-700 font-bold text-sm focus:ring-2 focus:ring-blue-500/20" placeholder="********" />
                   <button type="button" onClick={() => setVerClave(!verClave)} className="absolute right-6 top-1/2 -translate-y-1/2 text-[9px] font-black text-blue-600 uppercase tracking-tighter">
                     {verClave ? "Ocultar" : "Mostrar"}
@@ -246,12 +246,12 @@ export default function Login({ alEntrar, alCerrar }) {
               {vista === 'registro' && (
                 <div className="space-y-1">
                   <label className="text-[9px] font-black uppercase text-slate-400 ml-4 tracking-widest block italic">Confirmar Contraseña</label>
-                  {/* 🔥 Se agregó value={datos.confirmarClave} */}
+                  
                   <input type={verClave ? "text" : "password"} name="confirmarClave" value={datos.confirmarClave} required onChange={manejarCambio} className="w-full px-6 py-4 rounded-2xl bg-slate-50 border border-slate-100 outline-none text-slate-700 font-bold text-sm focus:ring-2 focus:ring-blue-500/20" placeholder="********" />
                 </div>
               )}
 
-              {/* BOTÓN CON ANIMACIÓN DE CARGA */}
+              
               <button 
                 type="submit" 
                 disabled={cargando} 
@@ -287,11 +287,11 @@ export default function Login({ alEntrar, alCerrar }) {
               </p>
               <div className="space-y-1">
                 <label className="text-[9px] font-black uppercase text-slate-400 ml-4 tracking-widest block italic">Nombre de Usuario</label>
-                {/* 🔥 Se agregó value={datos.usuarioRecuperar} */}
+             
                 <input type="text" name="usuarioRecuperar" value={datos.usuarioRecuperar} required onChange={manejarCambio} className="w-full px-6 py-4 rounded-2xl bg-slate-50 border border-slate-100 outline-none text-slate-700 font-bold italic text-sm" placeholder="Usuario" />
               </div>
 
-              {/* BOTÓN DE RECUPERACIÓN CON CARGA */}
+             
               <button 
                 type="submit" 
                 disabled={cargando} 

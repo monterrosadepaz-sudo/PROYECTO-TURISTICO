@@ -4,35 +4,9 @@ import { useNavigate } from 'react-router-dom';
 export default function AdminSolicitudes() {
   const navigate = useNavigate();
   const sesionAdmin = JSON.parse(localStorage.getItem('usuarioLogueado')) || { nombre: 'Admin General' };
-
-  // --- DATOS SIMULADOS (MOCK DATA) ---
-  // Esto es lo que Julio debería devolverte en un endpoint GET /api/admin/solicitudes
-  const [solicitudes, setSolicitudes] = useState([
-    {
-      id_solicitud: 101,
-      colaborador: "Ronald Romero",
-      nombre_sitio: "Ichanmichen",
-      idpublicacion: "e544e976-876c-48a6-91dd-2ce0da10c30f",
-      tipo: "ACTUALIZAR", // O 'ELIMINAR'
-      comentario: "Deseo actualizar la descripción del sitio porque cambiaron los horarios.",
-      fecha: "2026-02-12 14:30"
-    },
-    {
-      id_solicitud: 102,
-      colaborador: "Mike Developer",
-      nombre_sitio: "Playa El Tunco",
-      idpublicacion: "ceeb3098-2b96-45c5-9317-fb4ba78fbe34",
-      tipo: "ELIMINAR",
-      comentario: "El negocio cerró permanentemente, solicito la baja.",
-      fecha: "2026-02-12 15:00"
-    }
-  ]);
-
   const procesarSolicitud = (solicitud, decision) => {
     if (decision === 'aprobar') {
       if (solicitud.tipo === 'ACTUALIZAR') {
-        // Si aprueba actualizar, lo llevamos al editor PERO en modo Admin (full acceso)
-        // Aquí pasamos el ID que viene en la solicitud
         navigate(`/editar/${solicitud.idpublicacion}`, { 
             state: { modoAdmin: true, adminId: sesionAdmin.idusuario } 
         });
@@ -41,7 +15,6 @@ export default function AdminSolicitudes() {
         setSolicitudes(prev => prev.filter(s => s.id_solicitud !== solicitud.id_solicitud));
       }
     } else {
-      // Rechazar
       if(window.confirm("¿Rechazar esta solicitud?")) {
         setSolicitudes(prev => prev.filter(s => s.id_solicitud !== solicitud.id_solicitud));
       }
@@ -51,8 +24,7 @@ export default function AdminSolicitudes() {
   return (
     <div className="min-h-screen py-12 px-4 bg-slate-50 italic text-left">
       <div className="max-w-5xl mx-auto space-y-8">
-        
-        {/* Cabecera */}
+
         <div className="flex justify-between items-end border-b-4 border-slate-800 pb-6">
           <div>
             <h2 className="text-4xl font-black text-slate-800 uppercase tracking-tighter leading-none">Centro de Solicitudes</h2>
@@ -62,8 +34,6 @@ export default function AdminSolicitudes() {
             {solicitudes.length} Pendientes
           </div>
         </div>
-
-        {/* Lista de Solicitudes */}
         <div className="grid grid-cols-1 gap-6">
           {solicitudes.length === 0 ? (
              <div className="p-20 text-center text-slate-300 font-black uppercase text-xl border-2 border-dashed border-slate-200 rounded-[3rem]">
@@ -72,15 +42,13 @@ export default function AdminSolicitudes() {
           ) : (
             solicitudes.map((sol) => (
               <div key={sol.id_solicitud} className="bg-white rounded-[2.5rem] p-8 shadow-xl border border-slate-100 flex flex-col md:flex-row gap-8 items-start hover:shadow-2xl transition-all duration-300">
-                
-                {/* Indicador Visual del Tipo */}
+
                 <div className={`w-full md:w-24 h-24 rounded-3xl flex items-center justify-center text-3xl shadow-inner ${
                     sol.tipo === 'ELIMINAR' ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-blue-500'
                 }`}>
                     {sol.tipo === 'ELIMINAR' ? '🗑️' : '✏️'}
                 </div>
 
-                {/* Contenido */}
                 <div className="flex-1 space-y-3">
                     <div className="flex justify-between items-start">
                         <div>
@@ -98,14 +66,10 @@ export default function AdminSolicitudes() {
                         <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1">Comentario del Colaborador ({sol.colaborador})</p>
                         <p className="text-xs font-bold text-slate-600 italic">"{sol.comentario}"</p>
                     </div>
-                    
-                    {/* Datos técnicos (Debug para ti) */}
                     <p className="text-[8px] font-mono text-slate-300">
                         ID PUB: {sol.idpublicacion}
                     </p>
                 </div>
-
-                {/* Botones de Acción */}
                 <div className="flex flex-row md:flex-col gap-3 min-w-[140px]">
                     <button 
                         onClick={() => procesarSolicitud(sol, 'aprobar')}

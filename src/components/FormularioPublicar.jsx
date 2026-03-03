@@ -13,7 +13,6 @@ export default function FormularioPublicar() {
   const navigate = useNavigate();
   const { id } = useParams();
 
-  // 🔥 PARCHE DE SEGURIDAD RESTAURADO (Sin datos hardcodeados)
   const sesionActiva = JSON.parse(localStorage.getItem('usuarioLogueado')) || {};
 
   const [correoBD, setCorreoBD] = useState(sesionActiva.email || "Correo no disponible");
@@ -27,7 +26,6 @@ export default function FormularioPublicar() {
   const [cargando, setCargando] = useState(false);
   const [coordManual, setCoordManual] = useState({ lat: '', lng: '' });
 
-  // Inicializamos todas las opciones en false dinámicamente
   const estadoInicialPermisos = {};
   [...reglasPermisos, ...serviciosAmenidades, ...actividadesDestacadas].forEach(item => {
       estadoInicialPermisos[item.id] = false;
@@ -37,7 +35,7 @@ export default function FormularioPublicar() {
     nombreSitio: '', departamento: '', municipio: '', distrito: '',   
     ubicacion: null, categoria: '', 
     descripcion: '', 
-    video_link: '', // 🔥 CAMBIADO: Ahora se llama exactamente como lo pide Julio
+    video_link: '', 
     precios: { adultos: '', ninos: '', terceraEdad: '' },
     horarios: {
       lunes: { abierto: false, inicio: '08:00', fin: '17:00' }, martes: { abierto: false, inicio: '08:00', fin: '17:00' },
@@ -70,7 +68,7 @@ export default function FormularioPublicar() {
                     ubicacion: { lat: parseFloat(data.latitud), lng: parseFloat(data.longitud) },
                     categoria: JSON.parse(data.clasificacion)[0].charAt(0).toUpperCase() + JSON.parse(data.clasificacion)[0].slice(1).toLowerCase(),
                     descripcion: data.descripcion,
-                    video_link: data.video_link || '', // 🔥 Cargar link de la BD si existe
+                    video_link: data.video_link || '', 
                     precios: JSON.parse(data.detalles).tarifas_desglosadas,
                     horarios: procesarHorariosDesdeAPI(JSON.parse(data.horarios)),
                     permisos: permisosCargados 
@@ -148,7 +146,7 @@ export default function FormularioPublicar() {
 
   const manejarArchivos = (e) => {
     const nuevosArchivos = Array.from(e.target.files);
-    if (fotosVista.length + nuevosArchivos.length > 20) return alert("Máximo 20 archivos permitidos.");
+    if (fotosVista.length + nuevosArchivos.length > 999) return alert("Error Intente de nuevo porfavor");
     
     const nuevasFotosConfig = nuevosArchivos.map(file => ({
         url: URL.createObjectURL(file), is360: false, isNew: true, file: file
@@ -197,7 +195,6 @@ export default function FormularioPublicar() {
     data.append('fecha', new Date().toISOString().split('T')[0]); 
     data.append('personas', 1); 
     
-    // 🔥 CAMBIADO: Se manda exactamente como "video_link"
     if (formData.video_link) data.append('video_link', formData.video_link);
 
     data.append('politicas', JSON.stringify(formData.permisos));
@@ -421,15 +418,15 @@ export default function FormularioPublicar() {
             <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-[0.2em]">05. Descripción del lugar</h4>
             <div className="space-y-1">
               <label className="text-[9px] font-black uppercase text-slate-400 ml-2 tracking-widest block italic">Actividades y servicios</label>
-              <textarea name="descripcion" maxLength={250} value={formData.descripcion} onChange={manejarCambio} required className="w-full px-5 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:bg-white focus:border-blue-500 outline-none h-32 text-slate-700 font-bold italic shadow-sm resize-none" placeholder="Describe el lugar..." />
+              <textarea name="descripcion" maxLength={99999} value={formData.descripcion} onChange={manejarCambio} required className="w-full px-5 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:bg-white focus:border-blue-500 outline-none h-32 text-slate-700 font-bold italic shadow-sm resize-none" placeholder="Describe el lugar..." />
               <div className="text-right text-[9px] font-black text-slate-400 mt-1 uppercase tracking-widest">
-                  {formData.descripcion.length} / 250 caracteres
+                  {formData.descripcion.length} 
               </div>
             </div>
           </div>
 
           <div className="space-y-4">
-            <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-[0.2em]">06. Multimedia del Destino (MÁX. 20)</h4>
+            <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-[0.2em]">06. Multimedia del Destino</h4>
             
             <div className="bg-slate-50 border border-slate-200 rounded-3xl p-6 shadow-inner space-y-3">
                 <div className="flex items-center gap-3">

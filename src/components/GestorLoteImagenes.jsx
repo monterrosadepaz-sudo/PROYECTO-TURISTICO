@@ -2,24 +2,14 @@ import React, { useState } from 'react';
 import { API_URL } from '../config';
 
 export default function GestorLoteImagenes({ idpublicacion, imagenesCargadas, alTerminar, youtubeActual }) {
-  
-  // ==========================================
-  // ESTADOS DEL WIZARD
-  // ==========================================
+
   const [fase, setFase] = useState(1);
   const [cargandoEnvio, setCargandoEnvio] = useState(false);
-
   const [intenciones, setIntenciones] = useState({}); 
   const [listaEsperando, setListaEsperando] = useState([]); 
   const [archivosFisicos, setArchivosFisicos] = useState({}); 
-
-  // 🔥 NUEVOS ESTADOS PARA YOUTUBE
   const [eliminarYoutube, setEliminarYoutube] = useState(false);
   const [nuevoYoutube, setNuevoYoutube] = useState('');
-
-  // ==========================================
-  // GENERADOR INTELIGENTE DE NOMBRES
-  // ==========================================
   const extraerLote = (nombreAnterior) => {
       if (!nombreAnterior) return null;
       const partes = nombreAnterior.split('-');
@@ -50,10 +40,6 @@ export default function GestorLoteImagenes({ idpublicacion, imagenesCargadas, al
 
     return `0000${fechaStr}publicacion-${loteID}-${index}${sufijo360}.${ext}`;
   };
-
-  // ==========================================
-  // LÓGICA FASE 1
-  // ==========================================
   const toggleIntencion = (nombreImagen, accion) => {
     setIntenciones(prev => {
       const copia = { ...prev };
@@ -69,15 +55,12 @@ export default function GestorLoteImagenes({ idpublicacion, imagenesCargadas, al
         nombre: nombre
     }));
 
-    // 🔥 Si el usuario quiere borrar o cambiar el video actual, lo mandamos a eliminar
     if (eliminarYoutube && youtubeActual) {
         cambios.push({
             accion: 'eliminar',
             video_link: youtubeActual
         });
     }
-
-    // Si no hay cambios físicos que preparar, saltamos directo al Paso 2 (Por si solo quiere agregar un video)
     if (cambios.length === 0) {
         setListaEsperando([]);
         setFase(2);
@@ -103,9 +86,8 @@ export default function GestorLoteImagenes({ idpublicacion, imagenesCargadas, al
             setListaEsperando(data.esperando);
             setFase(2);
         } else {
-            // Si solo mandó a eliminar (fotos o video), termina aquí.
             alert("Archivos eliminados correctamente de la base de datos.");
-            setFase(2); // Pasamos al paso 2 por si quiere añadir el link de youtube nuevo
+            setFase(2);
         }
     } catch (error) {
         alert(error.message);
@@ -113,10 +95,6 @@ export default function GestorLoteImagenes({ idpublicacion, imagenesCargadas, al
         setCargandoEnvio(false);
     }
   };
-
-  // ==========================================
-  // LÓGICA FASE 2
-  // ==========================================
   const handleArchivoSeleccionado = (nombreEsperado, e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -167,8 +145,6 @@ export default function GestorLoteImagenes({ idpublicacion, imagenesCargadas, al
               const archivoRenombrado = new File([fileData.file], nuevoNombreValidado, { type: fileData.file.type });
               form.append('archivos_nuevos[]', archivoRenombrado);
           });
-
-          // 🔥 Mandamos el nuevo link de YouTube si el usuario lo llenó
           if (nuevoYoutube.trim() !== '') {
               form.append('video_link', nuevoYoutube.trim());
           }
@@ -218,8 +194,7 @@ export default function GestorLoteImagenes({ idpublicacion, imagenesCargadas, al
       {fase === 1 && (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                
-                {/* 🔥 TARJETA DE YOUTUBE EN FASE 1 */}
+
                 {youtubeActual && (
                     <div 
                         onClick={() => setEliminarYoutube(!eliminarYoutube)}
@@ -245,7 +220,6 @@ export default function GestorLoteImagenes({ idpublicacion, imagenesCargadas, al
                     </div>
                 )}
 
-                {/* IMÁGENES NORMALES */}
                 {imagenesCargadas.map((img) => {
                 const estado = intenciones[img.nombreOriginal]; 
                 const esVideo = img.url.match(/\.(mp4|mov|avi|wmv|webm)$/i); 
@@ -300,7 +274,7 @@ export default function GestorLoteImagenes({ idpublicacion, imagenesCargadas, al
       {fase === 2 && (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-500">
               
-              {/* 🔥 INPUT NUEVO YOUTUBE EN FASE 2 */}
+
               <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200 mt-6 mb-8">
                   <h3 className="text-red-600 font-black text-[10px] uppercase tracking-widest mb-3 flex items-center gap-2">
                       <span className="bg-red-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[8px]">▶</span>
@@ -345,7 +319,6 @@ export default function GestorLoteImagenes({ idpublicacion, imagenesCargadas, al
                               
                               {dataArchivo ? (
                                   <>
-                                      {/* PREVIEW */}
                                       {esVideo ? (
                                           <video src={`${dataArchivo.preview}#t=0.001`} className="absolute inset-0 w-full h-full object-cover opacity-50" muted />
                                       ) : (
@@ -386,7 +359,7 @@ export default function GestorLoteImagenes({ idpublicacion, imagenesCargadas, al
                                           title="Haz clic para subir un archivo de sustitución"
                                       />
                                       <span className="text-3xl mb-2 group-hover:scale-110 transition-transform">📤</span>
-                                      <p className="text-slate-600 font-black text-[10px] uppercase tracking-widest">Sustituto para hueco {index + 1}</p>
+                                      <p className="text-slate-600 font-black text-[10px] uppercase tracking-widest">Sustituto para archivo {index + 1}</p>
                                       <p className="text-blue-600 font-black text-[9px] mt-4 uppercase tracking-widest underline">Clic aquí para subir</p>
                                   </>
                               )}

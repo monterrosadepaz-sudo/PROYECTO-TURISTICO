@@ -4,7 +4,6 @@ import MapaFormulario from './MapaFormulario';
 import { reglasPermisos, serviciosAmenidades, actividadesDestacadas } from '../data/OpcionesDestino';
 import { API_URL } from '../config';
 
-// --- COMPONENTE DE GALERÍA INTELIGENTE PARA EL ADMIN ---
 const GaleriaEvidencia = ({ imagenes, imagenPrincipal, videoLink }) => {
   const [fotoSeleccionada, setFotoSeleccionada] = useState(null);
   let listaMultimedia = [];
@@ -185,7 +184,6 @@ const GaleriaEvidencia = ({ imagenes, imagenPrincipal, videoLink }) => {
   );
 };
 
-// --- COMPONENTE PRINCIPAL ---
 export default function AdminDetalleSitio() {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -309,8 +307,7 @@ const notificarUsuario = async (accionRealizada, mensajePersonalizado) => {
 
   return (
     <div className="min-h-screen bg-slate-50 italic font-sans pb-20">
-      
-      {/* 🔥 BANNER DE SOLICITUD - SE QUITO EL STICKY 🔥 */}
+
       {datosSolicitud && (
         <div className="bg-slate-900 text-white px-8 py-6 relative z-[200] shadow-2xl animate-in slide-in-from-top duration-500">
             <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -338,7 +335,6 @@ const notificarUsuario = async (accionRealizada, mensajePersonalizado) => {
         </div>
       )}
 
-      {/* 🚀 HERO ACTUALIZADO (Lógica de Imagen Corregida) 🚀 */}
       <div className="relative h-[45vh] w-full overflow-hidden bg-slate-950">
         {sitio.imagen && (
             <img 
@@ -349,14 +345,13 @@ const notificarUsuario = async (accionRealizada, mensajePersonalizado) => {
                     if (e.target.src.includes('publicaciones')) {
                         e.target.src = e.target.src.replace('publicaciones', 'preformularios');
                     } else {
-                        // 🔥 Si falla todo, ocultamos el tag para que no se vea fallback ni icono roto
                         e.target.style.display = 'none'; 
                     }
                 }}
                 alt=""
             />
         )}
-        {/* Degradado siempre visible sobre el fondo oscuro */}
+
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent"></div>
         
         <button onClick={() => navigate(-1)} className="absolute top-8 left-8 z-[100] cursor-pointer bg-white/10 hover:bg-white/20 backdrop-blur-md text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg border border-white/10">← Volver</button>
@@ -372,19 +367,15 @@ const notificarUsuario = async (accionRealizada, mensajePersonalizado) => {
         </div>
       </div>
 
-      {/* CONTENIDO PRINCIPAL */}
       <div className="max-w-6xl mx-auto px-6 mt-8 relative z-10 grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* COLUMNA IZQUIERDA (Info principal) */}
         <div className="lg:col-span-2 space-y-8">
-            
-            {/* DESCRIPCIÓN */}
+
             <div className="bg-white p-10 rounded-[3rem] shadow-xl border border-slate-100">
                 <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-widest italic mb-6">Sobre este destino</h4>
                 <p className="text-slate-600 text-sm leading-relaxed font-medium italic">"{sitio.descripcion}"</p>
             </div>
 
-            {/* TARIFAS */}
             <div className="bg-white p-10 rounded-[3rem] shadow-xl border border-slate-100">
                 <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-widest italic mb-6">Tarifas Reportadas</h4>
                 <div className="space-y-6">
@@ -405,10 +396,8 @@ const notificarUsuario = async (accionRealizada, mensajePersonalizado) => {
                 </div>
             </div>
 
-            {/* POLÍTICAS Y CARACTERÍSTICAS */}
             <div className="bg-white p-10 rounded-[3rem] shadow-xl border border-slate-100 space-y-10">
                 
-                {/* BLOQUE A: Reglas y Permisos */}
                 <div>
                     <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-widest italic mb-6 border-b border-slate-50 pb-3">A. Reglas y Permisos</h4>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -424,7 +413,6 @@ const notificarUsuario = async (accionRealizada, mensajePersonalizado) => {
                     </div>
                 </div>
 
-                {/* BLOQUE B: Amenidades */}
                 <div>
                     <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-widest italic mb-6 border-b border-slate-50 pb-3">B. Servicios y Amenidades</h4>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -440,7 +428,6 @@ const notificarUsuario = async (accionRealizada, mensajePersonalizado) => {
                     </div>
                 </div>
 
-                {/* BLOQUE C: Actividades */}
                 <div>
                     <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-widest italic mb-6 border-b border-slate-50 pb-3">C. Actividades Destacadas</h4>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -457,7 +444,6 @@ const notificarUsuario = async (accionRealizada, mensajePersonalizado) => {
                 </div>
             </div>
 
-            {/* GALERÍA MULTIMEDIA */}
             <div className="bg-white p-10 rounded-[3rem] shadow-xl border border-slate-100">
                 <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-widest italic mb-6">Evidencia Multimedia</h4>
                 <GaleriaEvidencia 
@@ -469,10 +455,8 @@ const notificarUsuario = async (accionRealizada, mensajePersonalizado) => {
 
         </div>
 
-        {/* COLUMNA DERECHA (SIDEBAR) */}
         <div className="space-y-8">
-            
-            {/* TARJETA DE ESTADO */}
+
             <div className={`text-white p-8 rounded-[3rem] shadow-2xl relative overflow-hidden transition-colors duration-500 ${sitio.estado === 'activo' ? 'bg-green-500' : 'bg-red-500'}`}>
                 <div className="absolute top-0 right-0 p-8 opacity-10 text-9xl">🛡️</div>
                 <h4 className="text-[10px] font-black uppercase tracking-[0.2em] mb-2 text-white/70 italic">Estado de Publicación</h4>
@@ -485,7 +469,6 @@ const notificarUsuario = async (accionRealizada, mensajePersonalizado) => {
                 </div>
             </div>
 
-            {/* HORARIOS */}
             <div className="bg-white p-8 rounded-[3rem] shadow-xl border border-slate-100">
                 <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-widest italic mb-6">Horarios de Atención</h4>
                 <div className="space-y-3">
@@ -503,7 +486,6 @@ const notificarUsuario = async (accionRealizada, mensajePersonalizado) => {
                 </div>
             </div>
 
-            {/* MAPA */}
             <div className="bg-white p-6 rounded-[3rem] shadow-xl border border-slate-100">
                  <h4 className="text-blue-700 text-[10px] font-black uppercase tracking-widest italic mb-4 ml-2 mt-2">Ubicación</h4>
                  <div className="h-64 rounded-[2rem] overflow-hidden pointer-events-none opacity-90 border-4 border-slate-50 relative z-0">
@@ -511,7 +493,6 @@ const notificarUsuario = async (accionRealizada, mensajePersonalizado) => {
                  </div>
             </div>
 
-            {/* ZONA DE GESTIÓN */}
             <div ref={zonaGestionRef} className="bg-slate-900 p-8 rounded-[3rem] border border-slate-800 text-center shadow-2xl scroll-mt-24">
                 <h4 className="text-slate-400 text-[10px] font-black uppercase tracking-widest italic mb-6">Zona de Gestión Admin</h4>
                 <div className="space-y-3">

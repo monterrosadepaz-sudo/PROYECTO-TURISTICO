@@ -5,7 +5,7 @@ import { API_URL } from '../config';
 import { infoDepartamentos } from '../data/InfoDepartamentos';
 import { descripcionesDistritos } from '../data/InfoDistritos';
 
-// 🔥 RECIBIMOS LA NUEVA PROP "alIntentarPublicar"
+
 const VistaDepartamento = ({ onSeleccionarSitio, alIntentarPublicar }) => {
   const { nombreDepto } = useParams();
   const navigate = useNavigate();
@@ -142,7 +142,6 @@ const VistaDepartamento = ({ onSeleccionarSitio, alIntentarPublicar }) => {
                     titulo={sitio.nombre}
                     categoria={sitio.distrito}
                     etiquetas={[sitio.municipio]}
-                    // Si tu TarjetaDestino ya maneja bien las rutas, esto queda intacto.
                     imagen={sitio.imagen} 
                   />
                 </div>
@@ -155,7 +154,6 @@ const VistaDepartamento = ({ onSeleccionarSitio, alIntentarPublicar }) => {
                 <p className="text-slate-500 font-bold text-sm mb-10 max-w-lg mx-auto">
                     Actualmente no hay ningún destino turístico registrado en {distritoSeleccionado !== 'TODOS' ? distritoSeleccionado : nombreDepto}. ¿Conoces algún lugar increíble que todos deberían visitar? ¡Qué esperas para compartirlo con el mundo!
                 </p>
-                {/* 🔥 Y AQUÍ USAMOS LA FUNCIÓN PARA QUE LE PIDA LOGIN PRIMERO */}
                 <button 
                     onClick={alIntentarPublicar} 
                     className="bg-green-500 hover:bg-green-600 text-white font-black text-[11px] px-10 py-5 rounded-[2rem] uppercase tracking-widest shadow-xl shadow-green-200 hover:scale-105 transition-all active:scale-95"

@@ -38,7 +38,7 @@ export default function Navbar({ alClickIngresar, isLogged, rol, alCerrarSesion,
 
   const toggleNotificaciones = () => {
     if (!mostrarNotificaciones) {
-        setHasUnread(false); // Quitamos el punto rojo al abrir
+        setHasUnread(false); 
     }
     setMostrarNotificaciones(!mostrarNotificaciones);
   };
@@ -56,7 +56,7 @@ export default function Navbar({ alClickIngresar, isLogged, rol, alCerrarSesion,
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // --- LOGICA DE NOTIFICACIONES SILENCIADA ---
+  
   useEffect(() => {
     const fetchNotificaciones = async () => {
       if (isLogged && datosUsuario.idusuario && rol === 'colaborador') {
@@ -108,7 +108,7 @@ export default function Navbar({ alClickIngresar, isLogged, rol, alCerrarSesion,
           
           {isLogged && (
             <>
-              {/* --- 1. CAMPANITA (SIEMPRE VISIBLE EN PC Y MÓVIL) --- */}
+              
               {rol === 'colaborador' && (
                   <div className="relative" ref={notifRef}>
                       <button 
@@ -162,7 +162,7 @@ export default function Navbar({ alClickIngresar, isLogged, rol, alCerrarSesion,
                   </div>
               )}
 
-              {/* --- 2. VISTA ESCRITORIO (DISEÑO ORIGINAL PC) --- */}
+              
               <div className="hidden md:flex items-center gap-4 border-r border-blue-700 pr-4">
                 {rol === 'colaborador' && (
                   <button onClick={() => navigate("/mis-propuestas")} className="text-[10px] font-black uppercase tracking-widest text-blue-200 hover:text-white transition-colors mr-2">Mis Propuestas</button>
@@ -178,7 +178,7 @@ export default function Navbar({ alClickIngresar, isLogged, rol, alCerrarSesion,
                   </button>
                 </div>
                 
-                {/* 🔥 AVATAR PREMIUM CON AURA BRILLANTE (DESKTOP) */}
+                
                 <div onClick={() => navigate("/perfil")} className="relative group cursor-pointer ml-1">
                   {/* El Aura Brillante */}
                   <div className="absolute inset-0 rounded-full bg-yellow-400 blur-[6px] animate-pulse opacity-60 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -193,13 +193,13 @@ export default function Navbar({ alClickIngresar, isLogged, rol, alCerrarSesion,
                 <button onClick={alCerrarSesion} className="text-[10px] font-black uppercase tracking-widest text-red-400 hover:text-red-200 transition-colors pl-2">Salir</button>
               </div>
 
-              {/* --- 3. VISTA MÓVIL (MENÚ HAMBURGUESA) --- */}
+              {/* --- VISTA MÓVIL (MENÚ HAMBURGUESA) --- */}
               <div className="md:hidden relative" ref={menuRef}>
                 <button 
                   onClick={() => setMenuAbierto(!menuAbierto)}
                   className="flex items-center gap-3 p-1 rounded-2xl hover:bg-blue-700 transition-all outline-none"
                 >
-                  {/* 🔥 AVATAR PREMIUM CON AURA BRILLANTE (MÓVIL) */}
+                  
                   <div className="relative group ml-1">
                     <div className="absolute inset-0 rounded-full bg-yellow-400 blur-[5px] animate-pulse opacity-60"></div>
                     <div className="relative w-9 h-9 rounded-full p-[2px] bg-gradient-to-tr from-amber-400 via-yellow-300 to-amber-600">

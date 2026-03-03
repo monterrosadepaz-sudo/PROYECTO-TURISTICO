@@ -24,7 +24,6 @@ const ModalConfirmacionEliminar = ({ visible, alCerrar, alConfirmar, item, proce
   );
 };
 
-// --- COMPONENTE TOAST (NOTIFICACIÓN FLOTANTE) ---
 const NotificacionToast = ({ visible, mensaje, tipo }) => {
   if (!visible) return null;
   const esExito = tipo === 'exito';

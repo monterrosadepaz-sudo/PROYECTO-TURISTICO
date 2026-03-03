@@ -14,17 +14,14 @@ export default function TablaPropuestas({ propuestas, tipo, alAnalizar, alAccion
     inactivo: 'bg-red-100 text-red-700 border-red-200'
   };
 
-  // 🔥 ENRUTADOR INTELIGENTE PARA LA TABLA ADMIN 🔥
   const obtenerRutaImagen = (nombreImg) => {
     if (!nombreImg) return '/default.jpg';
     if (nombreImg.startsWith('http')) return nombreImg;
-    
-    // Si el nombre contiene la marca de preformulario, apuntamos a esa carpeta
+
     if (nombreImg.includes('preformulario')) {
         return `${API_URL}/storage/preformularios/${nombreImg}`;
     }
-    
-    // De lo contrario, es una publicación oficial
+
     return `${API_URL}/storage/publicaciones/${nombreImg}`;
   };
 

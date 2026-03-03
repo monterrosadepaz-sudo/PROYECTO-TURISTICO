@@ -1,5 +1,3 @@
-// src/data/InfoDepartamentos.js
-
 export const infoDepartamentos = {
     "Ahuachapán": {
         titulo: "La Capital Geotérmica",

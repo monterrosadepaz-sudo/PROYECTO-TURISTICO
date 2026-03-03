@@ -5,12 +5,10 @@ import 'leaflet/dist/leaflet.css';
 import { API_URL } from '../config';
 import { reglasPermisos, serviciosAmenidades, actividadesDestacadas } from '../data/OpcionesDestino';
 
-// --- COMPONENTE DE GALERÍA INTELIGENTE PARA EL ADMIN (CON MINIATURA DE YOUTUBE) ---
 const GaleriaEvidencia = ({ imagenes, imagenPrincipal, videoLink }) => {
   const [fotoSeleccionada, setFotoSeleccionada] = useState(null);
   let listaMultimedia = [];
   
-  // 🔥 1. Extracción robusta del link de YouTube
   let urlYoutubeReal = videoLink && videoLink !== "YouTube Video" ? videoLink : null;
 
   const extraerIdYoutube = (url) => {
@@ -32,7 +30,7 @@ const GaleriaEvidencia = ({ imagenes, imagenPrincipal, videoLink }) => {
       if (imagenes.video && Array.isArray(imagenes.video)) {
           imagenes.video.forEach(vid => listaMultimedia.push({ url: vid, tipo: 'video' }));
       }
-      // Si no venía en videoLink, lo buscamos dentro del JSON
+
       if (!urlYoutubeReal && imagenes.youtube) {
           const yt = Array.isArray(imagenes.youtube) ? imagenes.youtube[0] : imagenes.youtube;
           if (yt && yt !== "YouTube Video") urlYoutubeReal = yt;
@@ -110,7 +108,6 @@ const GaleriaEvidencia = ({ imagenes, imagenPrincipal, videoLink }) => {
 
       <div className="space-y-10">
         
-        {/* 🔥 SECCIÓN YOUTUBE (SOLO MINIATURA Y LINK) */}
         {urlYoutubeReal && (
             <div className="space-y-4">
                 <h5 className="text-red-500 text-[11px] font-black uppercase tracking-widest italic px-4 flex items-center gap-2 border-b border-slate-100 pb-2">
@@ -121,7 +118,6 @@ const GaleriaEvidencia = ({ imagenes, imagenPrincipal, videoLink }) => {
                     <div className="w-full md:w-64 aspect-video bg-slate-900 rounded-[2rem] overflow-hidden relative shadow-lg shrink-0">
                         {videoYoutubeId ? (
                             <>
-                                {/* Truco para obtener la miniatura de YouTube usando el ID */}
                                 <img 
                                   src={`https://img.youtube.com/vi/${videoYoutubeId}/maxresdefault.jpg`} 
                                   onError={(e) => e.target.src = `https://img.youtube.com/vi/${videoYoutubeId}/hqdefault.jpg`} 
@@ -147,7 +143,6 @@ const GaleriaEvidencia = ({ imagenes, imagenPrincipal, videoLink }) => {
             </div>
         )}
 
-        {/* SECCIÓN 360 */}
         {fotos360.length > 0 && (
             <div className="space-y-4">
                 <h5 className="text-blue-600 text-[11px] font-black uppercase tracking-widest italic px-4 flex items-center gap-2 border-b border-slate-100 pb-2">
@@ -157,7 +152,6 @@ const GaleriaEvidencia = ({ imagenes, imagenPrincipal, videoLink }) => {
             </div>
         )}
 
-        {/* SECCIÓN VIDEOS */}
         {videosMp4.length > 0 && (
             <div className="space-y-4">
                 <h5 className="text-purple-600 text-[11px] font-black uppercase tracking-widest italic px-4 flex items-center gap-2 border-b border-slate-100 pb-2">
@@ -167,7 +161,6 @@ const GaleriaEvidencia = ({ imagenes, imagenPrincipal, videoLink }) => {
             </div>
         )}
 
-        {/* SECCIÓN FOTOS ESTÁNDAR */}
         {fotosPlanas.length > 0 && (
             <div className="space-y-4">
                 <h5 className="text-slate-600 text-[11px] font-black uppercase tracking-widest italic px-4 flex items-center gap-2 border-b border-slate-100 pb-2">
@@ -382,7 +375,6 @@ export default function AnalisisDestino() {
         </div>
       )}
 
-      {/* HEADER */}
       <div className="bg-white border-b border-slate-200 px-8 py-6 sticky top-0 z-[1000] shadow-sm">
         <div className="max-w-5xl mx-auto flex justify-between items-center">
           <button onClick={() => navigate('/dashboard')} className="text-slate-400 hover:text-blue-600 font-black uppercase text-[10px] tracking-widest transition-all">← VOLVER AL PANEL</button>
@@ -513,7 +505,6 @@ export default function AnalisisDestino() {
 
         </section>
 
-        {/* 🔥 LLAMADA A LA GALERÍA ACTUALIZADA 🔥 */}
         <section className="bg-white rounded-[4rem] p-12 border border-slate-200 shadow-sm">
           <GaleriaEvidencia 
              imagenes={sitio.lote_imagenes || sitio.imagenes} 

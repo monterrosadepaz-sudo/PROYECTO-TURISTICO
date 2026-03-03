@@ -11,15 +11,13 @@ export default function AdminDashboard() {
   const [cargando, setCargando] = useState(false);
   const [guardandoUsuario, setGuardandoUsuario] = useState(false);
   
-  // --- ESTADOS DEL FLUJO DEL MODAL DE EDICIÓN ---
   const [mostrarModal, setMostrarModal] = useState(false);
-  const [faseModal, setFaseModal] = useState('advertencia'); // advertencia, menu, editar, confirmacion, exito
-  const [campoAEditar, setCampoAEditar] = useState(null); // nombre, username, email, telefono, password
+  const [faseModal, setFaseModal] = useState('advertencia');
+  const [campoAEditar, setCampoAEditar] = useState(null); 
   const [verClave, setVerClave] = useState(false);
   
   const [usuarioActual, setUsuarioActual] = useState(null);
   
-  // 🔥 NUEVO: Se agrega "telefono" al estado de edición
   const [datosEdicion, setDatosEdicion] = useState({
     nombre: '', username: '', email: '', telefono: '', password: '', confirmarPassword: ''
   });

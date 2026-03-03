@@ -1,5 +1,3 @@
-// src/data/OpcionesDestino.js
-
 export const categoriasDestino = [
   'Playa', 'Montaña', 'Pueblo', 'Ciudad', 'Balneario', 'Parque', 
   'Lago', 'Volcán', 'Sitio Arqueológico', 'Reserva Natural', 

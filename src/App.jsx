@@ -16,7 +16,6 @@ import PerfilUsuario from "./components/PerfilUsuario";
 import { API_URL } from './config';
 import AdminDetalleSitio from "./components/AdminDetalleSitio";
 import DetallePublico from "./components/DetallePublico"; 
-import Prueba360 from "./components/Prueba360";
 
 function AppContent() {
   const navigate = useNavigate();
@@ -117,8 +116,7 @@ function AppContent() {
       <div className="flex-grow"> 
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/test-360" element={<Prueba360 />} />
-
+          
           <Route path="/departamento/:nombreDepto" element={<VistaDepartamento onSeleccionarSitio={setSitioSeleccionado} alIntentarPublicar={intentarPublicar} />} />
           
           <Route path="/destino/:id" element={<DetallePublico />} />
@@ -159,7 +157,6 @@ function AppContent() {
             element={rolUsuario === 'admin' ? <AnalisisDestino /> : <Navigate to="/" replace />} 
           />
 
-          {/* 🔥 LA RUTA QUE ATRAPA EL ENLACE DEL CORREO DE JULIO */}
           <Route 
             path="/restablecer/:idusuario" 
             element={<RestablecerClave alTerminar={() => setMostrarLogin(true)} />} 

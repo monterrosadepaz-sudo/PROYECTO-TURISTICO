@@ -8,7 +8,6 @@ export default function ModalProgreso({ visible, porcentaje, mensaje = "Subiendo
       <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 text-center shadow-2xl border border-slate-100">
         
         <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 relative">
-            {/* Animación de carga circular */}
             <div className="absolute inset-0 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin"></div>
             <span className="text-blue-600 font-black text-xs">{porcentaje}%</span>
         </div>
@@ -20,7 +19,6 @@ export default function ModalProgreso({ visible, porcentaje, mensaje = "Subiendo
           Por favor, no cierres esta ventana
         </p>
 
-        {/* Barra de progreso horizontal */}
         <div className="w-full bg-slate-100 rounded-full h-3 mt-6 overflow-hidden shadow-inner">
           <div 
             className="bg-blue-600 h-full rounded-full transition-all duration-300 ease-out"
