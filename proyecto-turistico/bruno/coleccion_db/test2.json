@@ -1,0 +1,7 @@
+{
+    "message": "Cannot redeclare class App\\Http\\Controllers\\LoginController (previously declared in C:\\Users\\alber\\OneDrive\\Escritorio\\proyecto-turistico\\proyecto-turistico\\app\\Http\\Controllers\\admin\\loginController.php:9)",
+    "exception": "Symfony\\Component\\ErrorHandler\\Error\\FatalError",
+    "file": "C:\\Users\\alber\\OneDrive\\Escritorio\\proyecto-turistico\\proyecto-turistico\\app\\Http\\Controllers\\admin\\loginController.php",
+    "line": 9,
+    "trace": []
+}

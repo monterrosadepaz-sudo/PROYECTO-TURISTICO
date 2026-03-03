@@ -1,0 +1,26 @@
+meta {
+  name: eliminar preformulario colab
+  type: http
+  seq: 10
+}
+
+get {
+  url: 100.123.6.123:8000/api/preformularios
+  body: none
+  auth: inherit
+}
+
+body:json {
+  {
+    "nombre": "Dealessandro Monterrosa",
+    "email": "dialemrz@gmail.com",
+    "password": "1234",
+    "rol": "Colaborador"
+  }
+  
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

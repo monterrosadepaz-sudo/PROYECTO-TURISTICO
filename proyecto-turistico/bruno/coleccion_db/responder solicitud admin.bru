@@ -1,0 +1,28 @@
+meta {
+  name: responder solicitud admin
+  type: http
+  seq: 21
+}
+
+post {
+  url: 100.123.6.123:80/api/admin/solicitudes/responder
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "idpublicacion": "c7e9061b-b801-4e52-b991-d9b4cc564c8f",
+    "remitente_id": "8374bc95-e2a4-4f85-be28-aa1f3ccb0ec9",
+    "destinatario_id": "b64bfb4a-44de-497b-afa2-4a33a31b769e",
+    "accion": "aprobar",
+    "comentarios": "no, chingue su mdre",
+    "respuesta_a": "8374bc95-e2a4-4f85-be28-aa1f3ccb0ec9"
+  }
+  
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

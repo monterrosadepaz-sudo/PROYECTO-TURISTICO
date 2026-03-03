@@ -1,0 +1,22 @@
+meta {
+  name: publicaciones del lado del admin show
+  type: http
+  seq: 17
+}
+
+get {
+  url: 100.123.6.123:80/api/admin/publicaciones/66cb7b5b-4283-4a19-a37a-93957c3a6ce8
+  body: none
+  auth: inherit
+}
+
+body:json {
+  {
+  "colaborador_id":"641699ed-c755-43e3-bed8-c698f8096992"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

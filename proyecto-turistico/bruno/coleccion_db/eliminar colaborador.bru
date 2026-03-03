@@ -1,0 +1,23 @@
+meta {
+  name: eliminar colaborador
+  type: http
+  seq: 7
+}
+
+delete {
+  url: 100.123.6.123:8000/api/usuarios/11111111-2222-3333-4444-555555555555
+  body: none
+  auth: inherit
+}
+
+body:json {
+  {
+  "email": "miguelpacas796@gmail.com"
+  }
+  
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

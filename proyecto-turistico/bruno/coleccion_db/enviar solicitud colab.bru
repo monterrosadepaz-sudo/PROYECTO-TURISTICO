@@ -1,0 +1,26 @@
+meta {
+  name: enviar solicitud colab
+  type: http
+  seq: 15
+}
+
+post {
+  url: 100.123.6.123:8000/api/colaborador/solicitud/enviar
+  body: json
+  auth: inherit
+}
+
+body:json {
+   {
+    "idpublicacion": "457791f7-f32d-4bcb-a91b-8fee81ecd4ee",
+    "remitente_id": "8374bc95-e2a4-4f85-be28-aa1f3ccb0ec9",
+    "destinatario_id": "b64bfb4a-44de-497b-afa2-4a33a31b769e",
+    "accion": "editar",
+    "comentarios": "Necesito actualizar la descripción de la publicación." 
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

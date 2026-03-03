@@ -1,0 +1,22 @@
+meta {
+  name: detalles del lado publico
+  type: http
+  seq: 26
+}
+
+get {
+  url: 100.123.6.123:80/api/publico/publicaciones/detalles/8477e0ec-a7ee-43a8-8862-476ec99a29de
+  body: none
+  auth: inherit
+}
+
+body:json {
+  {
+  "colaborador_id":"641699ed-c755-43e3-bed8-c698f8096992"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

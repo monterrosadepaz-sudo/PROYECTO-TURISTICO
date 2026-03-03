@@ -1,0 +1,23 @@
+meta {
+  name: listar preformularios
+  type: http
+  seq: 9
+}
+
+post {
+  url: http://100.123.6.123:80/api/preformularios/listar
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+  "usuario": "d37bf02b-b1de-4803-8a45-9561d16a8702"
+  }
+  
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,0 +1,22 @@
+meta {
+  name: listar solicitudes admin
+  type: http
+  seq: 20
+}
+
+get {
+  url: 100.123.6.123:80/api/admin/solicitudes/listar
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "idadmin": "b64bfb4a-44de-497b-afa2-4a33a31b769e"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

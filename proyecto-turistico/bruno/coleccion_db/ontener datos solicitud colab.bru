@@ -1,0 +1,26 @@
+meta {
+  name: ontener datos solicitud colab
+  type: http
+  seq: 14
+}
+
+post {
+  url: 100.123.6.123:8000/api/colaborador/solicitud/obtener
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+  
+    "colaborador_id": "8374bc95-e2a4-4f85-be28-aa1f3ccb0ec9",
+    "idpublicacion": "457791f7-f32d-4bcb-a91b-8fee81ecd4ee"
+  
+  
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

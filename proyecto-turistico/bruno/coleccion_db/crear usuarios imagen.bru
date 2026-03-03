@@ -1,0 +1,26 @@
+meta {
+  name: crear usuarios imagen
+  type: http
+  seq: 8
+}
+
+post {
+  url: 100.123.6.123:8000/api/usuarios
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "nombre": "Dealessandro Monterrosa",
+    "email": "dialemrz@gmail.com",
+    "password": "1234",
+    "rol": "Colaborador"
+  }
+  
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

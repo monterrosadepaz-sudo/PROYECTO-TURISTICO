@@ -1,0 +1,22 @@
+meta {
+  name: publicaciones del lado del colab
+  type: http
+  seq: 12
+}
+
+get {
+  url: http://100.123.6.123:80/api/colaborador/publicaciones/listar
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+  "colaborador_id": "8374bc95-e2a4-4f85-be28-aa1f3ccb0ec9"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

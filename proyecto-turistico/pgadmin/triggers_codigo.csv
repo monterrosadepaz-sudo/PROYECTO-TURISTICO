@@ -1,0 +1,118 @@
+"proname","prosrc"
+"insertar_respuesta","
+BEGIN
+
+    IF p_nombreSitio IS NULL OR p_nombreSitio = '' THEN
+        RAISE EXCEPTION 'El nombre del sitio es obligatorio';
+    END IF;
+    IF p_descripcionLugar IS NULL OR p_descripcionLugar = '' THEN
+        RAISE EXCEPTION 'La descripción del lugar es obligatoria';
+    END IF;
+    IF p_ubicacion IS NULL OR p_ubicacion = '' THEN
+        RAISE EXCEPTION 'La ubicación es obligatoria';
+    END IF;
+    IF p_tipoLugar IS NULL OR p_tipoLugar = '' THEN
+        RAISE EXCEPTION 'El tipo de lugar es obligatorio';
+    END IF;
+    IF p_nombrePersona IS NULL OR p_nombrePersona = '' THEN
+        RAISE EXCEPTION 'El nombre de la persona es obligatorio';
+    END IF;
+
+-- Inserción
+    INSERT INTO respuestas_preformularios (
+        idPreformulario, nombreSitio, descripcionLugar, ubicacion,
+        tipoLugar, nombrePersona, horario, latitud, longitud,
+        recomendaciones, fechaRespuesta
+    )
+    VALUES (
+        p_idPreformulario, p_nombreSitio, p_descripcionLugar, p_ubicacion,
+        p_tipoLugar, p_nombrePersona, p_horario, p_latitud, p_longitud,
+        p_recomendaciones, NOW()
+    );
+END;
+"
+"insertar_publicacion","
+BEGIN
+    IF p_contenidoFinal IS NULL OR p_contenidoFinal = '' THEN
+        RAISE EXCEPTION 'El contenido final es obligatorio';
+    END IF;
+    IF p_estado NOT IN ('borrador','publicado') THEN
+        RAISE EXCEPTION 'Estado inválido';
+    END IF;
+
+    INSERT INTO Publicaciones (
+        idPlantilla, idRespuesta, contenidoFinal, fechaPublicacion, estado
+    )
+    VALUES (
+        p_idPlantilla, p_idRespuesta, p_contenidoFinal, NOW(), p_estado
+    );
+END;
+"
+"insertar_multimedia","
+BEGIN
+    IF p_tipo NOT IN ('imagen','video','mapa','360') THEN
+        RAISE EXCEPTION 'Tipo inválido';
+    END IF;
+    IF p_imagen IS NULL THEN
+        RAISE EXCEPTION 'La imagen/video es obligatorio';
+    END IF;
+
+    INSERT INTO Multimedia (
+        idPublicacion, tipo, imagen, descripcion
+    )
+    VALUES (
+        p_idPublicacion, p_tipo, p_imagen, p_descripcion
+    );
+END;
+"
+"aprobar_solicitud_plantilla","
+DECLARE
+    v_nombre VARCHAR;
+    v_descripcion TEXT;
+    v_contenido TEXT;
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM solicitud_plantilla WHERE idsolicitud = p_idSolicitud
+    ) THEN
+        RAISE EXCEPTION 'La solicitud no existe';
+    END IF;
+
+    SELECT nombrepropuesta, descripcionpropuesta, contenidopropuesto
+    INTO v_nombre, v_descripcion, v_contenido
+    FROM solicitud_plantilla
+    WHERE idsolicitud = p_idSolicitud;
+
+    UPDATE solicitud_plantilla
+    SET estado = 'aprobada',
+        revisadopor = p_idAdmin
+    WHERE idsolicitud = p_idSolicitud;
+
+    INSERT INTO plantillas (
+        nombre, descripcion, contenido, estado, idcategoria, fechacreacion
+    )
+    VALUES (
+        v_nombre, v_descripcion, v_contenido, 'aprobada', p_idCategoria, NOW()
+    );
+END;
+"
+"inicio_sesion_admin","
+DECLARE
+	v_hash text;
+	v_rol varchar(20);
+BEGIN
+		SELECT u.passwordd, u.rol
+		INTO v_hash, v_rol
+		FROM public.usuarios u
+		WHERE u.nombre = p_nombre;
+
+		IF NOT FOUND THEN
+			RETURN FALSE;
+		END IF;
+
+		IF v_rol = 'admin' AND v_hash = crypt(p_passwordd, v_hash) THEN
+			RETURN TRUE;
+		ELSE
+			RETURN FALSE;
+		END IF;
+	END;
+"

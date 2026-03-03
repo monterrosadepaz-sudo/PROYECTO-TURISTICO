@@ -1,0 +1,22 @@
+meta {
+  name: publicaciones inactivas del lado del admin
+  type: http
+  seq: 23
+}
+
+get {
+  url: 100.123.6.123:8000/api/admin/publicaciones/inactivas
+  body: none
+  auth: inherit
+}
+
+body:json {
+  {
+  "colaborador_id":"641699ed-c755-43e3-bed8-c698f8096992"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,0 +1,2 @@
+"conname","definition"
+"usuarios_rol_check","CHECK (((rol)::text = 'admin'::text))"

@@ -1,0 +1,16 @@
+meta {
+  name: leer_usuarios
+  type: http
+  seq: 4
+}
+
+get {
+  url: 100.123.6.123:8000/api/usuarios
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

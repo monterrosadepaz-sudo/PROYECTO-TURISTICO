@@ -1,0 +1,23 @@
+meta {
+  name: detalles preformularios admin
+  type: http
+  seq: 25
+}
+
+get {
+  url: http://100.123.6.123:80/api/admin/preformularios/b7290968-4f03-4db8-969f-11b8ef2f8c13/analizar
+  body: none
+  auth: inherit
+}
+
+body:json {
+  {
+  "usuario": "d37bf02b-b1de-4803-8a45-9561d16a8702"
+  }
+  
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

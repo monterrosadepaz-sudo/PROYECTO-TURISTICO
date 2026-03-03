@@ -1,0 +1,27 @@
+meta {
+  name: crear usuarios
+  type: http
+  seq: 4
+}
+
+post {
+  url: 100.123.6.123:8000/api/usuarios
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "nombre": "miguel pacas",
+    "email": "miguelpacas796@gmail.com",
+    "password": "1234",
+    "rol": "Administrador",
+    "foto_perfil": ""
+  }
+  
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

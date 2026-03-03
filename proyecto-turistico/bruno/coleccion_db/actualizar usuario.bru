@@ -1,0 +1,23 @@
+meta {
+  name: actualizar usuario
+  type: http
+  seq: 6
+}
+
+put {
+  url: 100.123.6.123:8000/api/usuarios/e47a8265-6b76-46be-b105-8db21751702e
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "rol": "Administrador"
+  }
+  
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

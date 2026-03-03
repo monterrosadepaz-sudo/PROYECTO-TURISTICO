@@ -1,0 +1,23 @@
+meta {
+  name: iniciar sesion
+  type: http
+  seq: 1
+}
+
+post {
+  url: 100.123.6.123:80/api/login
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+  "username":"julio alberto",
+  "password":"1234"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
