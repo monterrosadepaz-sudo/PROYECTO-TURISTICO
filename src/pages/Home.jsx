@@ -14,7 +14,7 @@ export default function Home() {
   const [conteoSitios, setConteoSitios] = useState({});
 
   // ==========================================
-  // CONFIGURACIÓN DE REALCE REVERSIBLE
+  // CONFIGURACIÓN DE REALCE REVERSIBLE si ya no quieren que la paz este en destacado solo ponerle: false
   // ==========================================
   const REALCE_LA_PAZ = true; 
 

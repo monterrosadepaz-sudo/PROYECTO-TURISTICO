@@ -29,15 +29,15 @@ const Footer = () => {
         <img 
           src={logoItca} 
           alt="ITCA-FEPADE" 
-          style={{ width: '180px', height: 'auto', filter: 'brightness(1.2)' }} 
+          style={{ width: '250px', height: 'auto', filter: 'brightness(1.2)' }} 
         />
-        <div style={{ width: '1px', height: '40px', backgroundColor: 'rgba(255,255,255,0.2)', display: 'none' }} className="hidden md:block" />
+        <div style={{ width: '1px', height: '45px', backgroundColor: 'rgba(255,255,255,0.2)', display: 'none' }} className="hidden md:block" />
 
         {/* Logo ALN */}
         <img 
           src={logoAln} 
           alt="ALN Logo" 
-          style={{ width: '120px', height: 'auto' }} 
+          style={{ width: '250px', height: 'auto' }} 
         />
       </div>
 
