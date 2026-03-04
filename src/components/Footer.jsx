@@ -56,7 +56,6 @@ const Footer = () => {
         >
           📧 megateczacatecoluca@itca.edu.sv
         </a>
-
         <a 
           href="https://www.google.com/maps?q=ITCA+Zacatecoluca" 
           target="_blank" 
