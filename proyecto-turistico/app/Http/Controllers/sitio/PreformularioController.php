@@ -79,7 +79,7 @@ public function store(Request $request): JsonResponse
         'fecha' => 'required|date',
         'personas' => 'required|integer|min:1',
         'detalles' => 'nullable|json',
-        'imagenes.*' => 'nullable|file|mimes:jpg,jpeg,png,ico,mp4,stl,h264,mpv|max:1048576',
+        'imagenes.*' => 'nullable|file|mimes:jpg,jpeg,png,ico,mp4,stl,h264,mpv|max:20,971,520',
         'video_link' => 'nullable|url'
     ]);
 
@@ -111,8 +111,8 @@ public function store(Request $request): JsonResponse
     if ($request->hasFile('imagenes')) {
         $archivos = $request->file('imagenes');
 
-        if (count($archivos) > 20) {
-            return response()->json(['error' => 'Un payload no puede tener más de 20 archivos'], 400);
+        if (count($archivos) > 400) {
+            return response()->json(['error' => 'Un payload no puede tener más de 400 archivos'], 400);
         }
 
         $pesoTotal = 0;
@@ -120,7 +120,7 @@ public function store(Request $request): JsonResponse
             $pesoTotal += $archivo->getSize();
         }
         if ($pesoTotal > (400 * 1024 * 1024)) {
-            return response()->json(['error' => 'El payload excede el límite de 400 MB'], 400);
+            return response()->json(['error' => 'El payload excede el límite de  20  GB'], 400);
         }
 
         foreach ($archivos as $index => $imagen) {
