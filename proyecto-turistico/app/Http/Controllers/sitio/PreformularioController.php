@@ -79,7 +79,7 @@ public function store(Request $request): JsonResponse
         'fecha' => 'required|date',
         'personas' => 'required|integer|min:1',
         'detalles' => 'nullable|json',
-        'imagenes.*' => 'nullable|file|mimes:jpg,jpeg,png,ico,mp4,stl,h264,mpv|max:20,971,520',
+        'imagenes.*' => 'nullable|file|mimes:jpg,jpeg,png,ico,mp4,stl,h264,mpv|max:20971520',
         'video_link' => 'nullable|url'
     ]);
 

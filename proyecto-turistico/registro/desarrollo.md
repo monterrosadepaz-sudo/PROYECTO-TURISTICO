@@ -15,3 +15,81 @@ ADMIN
 loginController.php 
 
 basicamente hacemo
+
+
+paso a paso de apache 24
+
+descargamos la paqueteria
+descomprimimos
+nos vamos al archivo httpd.conf
+hacemos:
+
+Define SRVROOT "D:\httpd-2.4.66-260223-Win64-VS18\Apache24"
+
+ServerRoot "${SRVROOT}"
+
+DocumentRoot "D:/proyecto/proyecto-turistico/public"
+<Directory "ruta del proyecto">
+    Options Indexes FollowSymLinks
+    AllowOverride All
+    Require all granted
+</Directory>
+
+Listen 127.0.0.1:80
+
+# --- INICIO CONFIGURACION PHP ---
+LoadModule php_module "D:/php-8.5.3-Win32-vs17-x64/php8apache2_4.dll"
+AddType application/x-httpd-php .php
+PHPIniDir "D:/php-8.5.3-Win32-vs17-x64"
+# --- FIN CONFIGURACION PHP ---
+
+-----------------------------------------------------
+
+
+DocumentRoot "D:/ALN/back/proyecto-turistico/public"
+<Directory "D:/ALN/back/proyecto-turistico/public">
+
+en php.ini
+
+extension_dir ="D:\php-8.4.5-Win32-vs17-x64\ext"
+;extension=bz2
+extension=curl
+;extension=ffi
+;extension=ftp
+extension=fileinfo
+;extension=gd
+;extension=gettext
+;extension=gmp
+;extension=intl
+;extension=ldap
+extension=mbstring
+;extension=exif      ; Must be after mbstring as it depends on it
+;extension=mysqli
+;extension=odbc
+;extension=openssl
+;extension=pdo_firebird
+;extension=pdo_mysql
+;extension=pdo_odbc
+extension=pdo_pgsql
+;extension=pdo_sqlite
+extension=pgsql
+;extension=shmop
+
+upload_max_filesize = 20000M
+max_file_uploads = 400
+default_socket_timeout = 600
+max_execution_time = 300
+max_input_time = 600
+memory_limit = 2048M
+
+
+COMANDO PARA LANZAR APACHE
+
+./httpd.exe  s se iinstal com srrvicio basta con rrniiciiarr lueg de instalar 
+
+net stop Apache2.4
+net start Appachee2.4
+
+instalamos composer en el proyeecto
+
+composer install
