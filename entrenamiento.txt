@@ -1,0 +1,123 @@
+{
+  "project": "Laravel 12 API First con Apache Nativo y PHP 8.4",
+  "components": [
+    {
+      "name": "Apache HTTP Server",
+      "version": "2.4.x",
+      "description": "Servidor web que recibe solicitudes HTTP y las redirige a Laravel.",
+      "installation": {
+        "linux": "sudo apt update && sudo apt install apache2",
+        "windows": "Descargar desde https://httpd.apache.org/ y extraer en C:\\Apache24"
+      },
+      "service": {
+        "linux": "sudo systemctl enable apache2 && sudo systemctl start apache2",
+        "windows": "Instalar como servicio: httpd.exe -k install"
+      }
+    },
+    {
+      "name": "PHP 8.4",
+      "version": "8.4.x",
+      "description": "Interprete de PHP necesario para ejecutar Laravel.",
+      "installation": {
+        "linux": "sudo apt install php8.4 php8.4-fpm php8.4-cli php8.4-common php8.4-zip php8.4-mbstring php8.4-curl php8.4-mysql php8.4-xml php8.4-json",
+        "windows": "Descargar desde https://windows.php.net/download/ y extraer en C:\\php"
+      },
+      "service": {
+        "linux": "sudo systemctl enable php8.4-fpm && sudo systemctl start php8.4-fpm",
+        "windows": "Instalar como servicio: php-fpm.exe -t -c php.ini"
+      }
+    },
+    {
+      "name": "PHP-FPM",
+      "version": "8.4.x",
+      "description": "Procesador de PHP que se comunica con Apache mediante FastCGI.",
+      "configuration": {
+        "linux": "/etc/php/8.4/fpm/pool.d/www.conf",
+        "windows": "php-fpm.conf en la carpeta de PHP"
+      },
+      "listen": "127.0.0.1:9000"
+    },
+    {
+      "name": "Virtual Host",
+      "description": "Configuración que le dice a Apache qué proyecto servir y bajo qué dominio.",
+      "file_path": {
+        "linux": "/etc/apache2/sites-available/api.local.conf",
+        "windows": "C:\\Apache24\\conf\\extra\\api.local.conf"
+      },
+      "content": "<VirtualHost *:80>\n    ServerName api.local\n    DocumentRoot \"/ruta/proyecto/public\"\n\n    <Directory \"/ruta/proyecto/public\">\n        Options Indexes FollowSymLinks\n        AllowOverride All\n        Require all granted\n    </Directory>\n\n    <FilesMatch \\.php$>\n        SetHandler \"proxy:fcgi://127.0.0.1:9000\"\n    </FilesMatch>\n\n    ErrorLog ${APACHE_LOG_DIR}/api_error.log\n    CustomLog ${APACHE_LOG_DIR}/api_access.log combined\n</VirtualHost>"
+    },
+    {
+      "name": "Modulos de Apache",
+      "required": [
+        "mod_rewrite",
+        "mod_proxy",
+        "mod_proxy_fcgi"
+      ],
+      "enable": {
+        "linux": "sudo a2enmod rewrite proxy proxy_fcgi && sudo systemctl reload apache2",
+        "windows": "Descomentar en httpd.conf:\nLoadModule rewrite_module modules/mod_rewrite.so\nLoadModule proxy_module modules/mod_proxy.so\nLoadModule proxy_fcgi_module modules/mod_proxy_fcgi.so"
+      }
+    },
+    {
+      "name": "Archivo hosts",
+      "description": "Mapea el dominio local a la IP 127.0.0.1.",
+      "file_path": {
+        "linux": "/etc/hosts",
+        "windows": "C:\\Windows\\System32\\drivers\\etc\\hosts"
+      },
+      "content": "127.0.0.1 api.local"
+    },
+    {
+      "name": "Permisos de archivos",
+      "description": "Asegura que Apache y PHP puedan leer y escribir en las carpetas necesarias.",
+      "linux": "sudo chown -R www-data:www-data /ruta/proyecto && sudo chmod -R 755 /ruta/proyecto",
+      "windows": "Dar permisos de lectura/escritura al usuario SYSTEM o Apache en la carpeta del proyecto"
+    },
+    {
+      "name": "Composer",
+      "version": "2.7.x",
+      "description": "Gestor de dependencias de PHP necesario para Laravel.",
+      "installation": {
+        "linux": "curl -sS https://getcomposer.org/installer | php && sudo mv composer.phar /usr/local/bin/composer",
+        "windows": "Descargar Composer-Setup.exe desde https://getcomposer.org/"
+      }
+    },
+    {
+      "name": "Laravel 12",
+      "version": "12.x",
+      "description": "Framework PHP para construir APIs.",
+      "installation": "composer create-project laravel/laravel /ruta/proyecto",
+      "storage_link": "php artisan storage:link"
+    },
+    {
+      "name": "Logs",
+      "apache": {
+        "linux": "/var/log/apache2/error.log",
+        "windows": "C:\\Apache24\\logs\\error.log"
+      },
+      "php_fpm": {
+        "linux": "/var/log/php8.4-fpm.log",
+        "windows": "logs/php-fpm.log en la carpeta de PHP"
+      }
+    }
+  ],
+  "execution_steps": [
+    "1. Instalar Apache nativo.",
+    "2. Instalar PHP 8.4 y PHP-FPM.",
+    "3. Configurar PHP-FPM para escuchar en 127.0.0.1:9000.",
+    "4. Crear el archivo de virtual host (api.local.conf).",
+    "5. Habilitar los módulos de Apache: rewrite, proxy, proxy_fcgi.",
+    "6. Editar el archivo hosts para mapear api.local a 127.0.0.1.",
+    "7. Instalar Composer y crear un proyecto Laravel 12.",
+    "8. Ejecutar 'php artisan storage:link' si se usan archivos subidos.",
+    "9. Configurar permisos en la carpeta del proyecto.",
+    "10. Reiniciar Apache y PHP-FPM.",
+    "11. Verificar que todo funcione accediendo a http://api.local/api/users (o tu ruta de API)."
+  ],
+  "notes": [
+    "No usar XAMPP, WAMP o paquetes integrados — instalar componentes por separado.",
+    "PHP-FPM es recomendado sobre mod_php por rendimiento y seguridad.",
+    "En Windows, asegurarse de que los servicios de Apache y PHP-FPM se inicien automáticamente.",
+    "Revisar logs si algo falla — son la mejor herramienta de diagnóstico."
+  ]
+}
